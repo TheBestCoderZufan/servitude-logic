@@ -1,0 +1,75 @@
+# In: ~/.gemini/commands/implement.toml
+# Invoked via: /implement
+# Goal: Implement exactly one unchecked feature from Gemini/features.md:
+# lines marked with "* [ ] Is Implementationed".
+
+description = "Implements the next unchecked feature from @Gemini/features.md with tests: branches appropriately, plans, codes, and ensures the test passes."
+
+prompt = """
+# Task: Implement one unchecked feature
+
+You are an implementation agent operating in this repository. Read and understand the files in @src/data/ and @README.md. You are to implement exactly one feature/page from @Gemini/features.md.
+
+## Inputs & Context
+
+- Feature list (authoritative): @Gemini/features.md
+
+- Current repo state:
+Current branch:
+!{git rev-parse --abbrev-ref HEAD}
+Working copy status (empty => clean):
+!{git status --porcelain}
+
+## Rules
+
+1) **Pick the feature**: Parse @Gemini/features.md. Identify the FIRST feature/page block that is immediately followed by a line that is exactly `* [ ] Is Implementationed`. Extract:
+   - `feature_title` (e.g., "Home Page", "About Page")
+   - `target_path` if shown in backticks in that block (e.g., `src/app/page.jsx`)
+
+2) **Branch strategy**:
+   - Compute `slug` from `feature_title`: lowercase; keep `a–z0–9`; convert other chars/spaces to `-`; collapse repeats; trim leading/trailing `-`.
+   - If current branch is `main`: create and switch to `feature/<slug>`.
+   - If NOT on `main`: if current branch name clearly aligns with this feature (contains `<slug>` or is a close semantic match), STAY; otherwise create/switch to `feature/<slug>`.
+   - If the working copy is not clean and a switch is needed, first `git stash -u`, switch branches, then continue.
+   - Use ShellTool for any git operations. Prefer:
+     - `git fetch --all --prune`
+     - `git checkout -b feature/<slug>` (or `git checkout feature/<slug>` if it exists)
+     - `git stash -u` only when necessary to switch branches.
+
+3) **Implementation plan**:
+   - Produce a concise bullet plan (3–8 bullets) describing how you will implement the feature/page.
+   - Plan must note where you will reuse components from @src/ui/components/buttons/, @src/ui/components/form/, and @src/ui/components/cards/.
+
+4) **Test first**:
+   - Create a focused unit test for this feature/page.
+
+5) **Implement**:
+   - Implement the code to satisfy the test.
+   - Reuse components from the listed UI directories whenever reasonable (import them rather than re-implementing).
+   - Create missing files if `target_path` doesn’t exist.
+   - All UI implementation must be clean and should look amazing.
+
+6) **Run the test for THIS feature only**:
+   - Detect the package manager from the earlier detection output.
+   - Run a narrowed test command using ShellTool:
+     - npm: `npm test -- <pattern>`
+   - Use a `<pattern>` that targets only the newly added test file.
+
+7) **Iterate until green**:
+   - If the test fails, update the code (and, if necessary, the test) and re-run just this test until it passes.
+
+8) **Completion**:
+   - Do NOT implement multiple features. Stop after the first selected feature’s test passes.
+   - Print:
+     - The selected `feature_title`
+     - The branch you ended on
+     - The list of files created/changed
+     - A one-paragraph summary of the implementation
+
+## Execution Hints
+
+- Prefer existing UI components from:
+  - @src/ui/components/buttons/
+  - @src/ui/components/form/
+  - @src/ui/components/cards/
+"""

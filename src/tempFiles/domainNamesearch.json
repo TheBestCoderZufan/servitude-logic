@@ -1,0 +1,73 @@
+{
+  "code": "200",
+  "message": "Success",
+  "data": {
+    "domain_name": "thisisthebestapp.com",
+    "available": "Yes",
+    "premium": "NO",
+    "price_list": [
+      {
+        "currency": "USD",
+        "unit": "(price/1 year)",
+        "registration": 10.88,
+        "renewal": 10.88,
+        "transfer": 10.88,
+        "restore": 100.92
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/2 year)",
+        "registration": 21.76,
+        "renewal": 21.76
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/3 year)",
+        "registration": 32.64,
+        "renewal": 32.64
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/4 year)",
+        "registration": 43.52,
+        "renewal": 43.52
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/5 year)",
+        "registration": 54.4,
+        "renewal": 54.4
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/6 year)",
+        "registration": 65.28,
+        "renewal": 65.28
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/7 year)",
+        "registration": 76.15,
+        "renewal": 76.15
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/8 year)",
+        "registration": 87.03,
+        "renewal": 87.03
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/9 year)",
+        "registration": 97.91,
+        "renewal": 97.91
+      },
+      {
+        "currency": "USD",
+        "unit": "(price/10 year)",
+        "registration": 108.79,
+        "renewal": 108.79
+      }
+    ]
+  }
+}

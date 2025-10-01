@@ -1,0 +1,9 @@
+{
+  "contextFileName": "AGENTS.md",
+  "fileFiltering": {
+    "respectGitIgnore": false,
+    "enableRecursiveFileSearch": false
+  },
+  "telemetry": false,
+  "usageStatisticsEnabled": false
+}

@@ -1,0 +1,42 @@
+# In: ~/.gemini/commands/git/gitcleanup.toml
+# Invoked via: /gitcleanup
+
+description = "Dangerous: Cleans up git branches by deleting every local and remote branch except 'main'. If not on 'main', switch to it first, then delete, then push."
+
+prompt = """
+# Command: Git Branch Cleanup (Keep only 'main')
+
+Perform a destructive cleanup that keeps only the 'main' branch locally and on the remote.
+
+## Non-Negotiable Safety Rules (READ FIRST)
+- **Irreversible:** This action permanently deletes branches. Proceed only if this is intended.
+- **Uncommitted changes:** If there are uncommitted changes (staged or unstaged), **stash them automatically** (include untracked) with a clear message before continuing.
+
+## Step-by-Step Instructions
+
+1. **Stash Uncommitted Changes**
+   - If the working tree is not clean, run an automatic stash (including untracked files) with a message like: `git stash push -u -m "gitcleanup auto-stash"`.
+
+2. **Switch to 'main'**
+   - If the current branch is not `main`, switch to `main`.
+
+3. **Delete Local Branches (keep only 'main')**
+   - Enumerate all local branches.
+   - Delete every local branch **except** `main`.
+
+4. **Delete Remote Branches on 'origin' (keep only 'main')**
+   - Enumerate remote branches on `origin`.
+   - Delete every remote branch **except** `main` and the remote's `HEAD` pointer.
+
+5. **Push 'main'**
+   - Push `main` to `origin` to ensure it’s present and up-to-date (set upstream if needed).
+
+6. **Summary Output**
+   - Print the list of remaining local branches (should be only `main`).
+   - Print remaining branches on `origin` to confirm that only `main` (and `HEAD`) remain.
+
+## Important Constraints
+- Do **not** force-push, rewrite history, or delete tags.
+- Do **not** delete or rename `main`.
+- If any step fails (e.g., permissions/auth errors, protected branches), **stop** and report the exact error and what the user should do next.
+"""

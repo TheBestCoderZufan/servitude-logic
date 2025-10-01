@@ -1,0 +1,20 @@
+# In: ~/.gemini/commands/tdd.toml
+# Invoked via: /tdd
+
+description = "Initiates a Test-Driven Development (TDD) cycle with an auto-generated feature name."
+
+prompt = """
+# Task: Initiate TDD Cycle
+
+You are a development assistant. A user has invoked the `/tdd` command.
+
+Your task is to follow the workflow below to set up a new test file using an automatically generated feature name, and then prompt the user to write the implementation code.
+
+## TDD Workflow
+1.  **Generate Feature Name**: Create a unique feature name using the convention `feature-YYYY-MM-DD-HHMMSS`.
+2.  **Inform User**: Announce the generated feature name to the user for their reference.
+3.  **Create Test File**: Using the generated name, create a new test file in the `__tests__/` directory. For example: `__tests__/feature-2025-08-06-224500.test.js`.
+4.  **Write Failing Test**: In the new file, write a basic, failing test that defines the expected behavior for this new feature.
+5.  **Run Test**: Execute the test suite and confirm that the new test fails as expected.
+6.  **Prompt for Implementation**: Inform the user that the failing test has been created under the generated name and prompt them to now write the necessary implementation code to make the test pass.
+"""

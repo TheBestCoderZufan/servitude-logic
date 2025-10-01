@@ -1,0 +1,27 @@
+# In: ~/.gemini/commands/git/commit.toml
+# Invoked via: /commit
+
+description = "Stages all changes, generates an intelligent commit message, merges feature branch into main, pushes, and deletes only the feature branch."
+
+prompt = """
+# Task: Smart Git Commit and Merge
+
+You are an expert DevOps assistant helping automate Git workflows with AI assistance.
+
+A user has invoked the `/commit` command. Your job is to commit all current changes, push them, and merge into main if applicable.
+
+## Your steps:
+1. Stage all changes using `git add .`
+2. Inspect the staged changes (e.g., via `git diff --cached`) and **generate a concise, conventional commit message** that summarizes the nature of the edits. Use clear, present-tense verbs like "Add", "Fix", "Refactor", or "Update".
+3. Commit the changes with the message you generated.
+4. Determine the current Git branch (e.g., `feature/xyz`)
+5. Push that branch to the remote (`origin`)
+6. If the current branch is **not `main`**:
+   - Checkout the `main` branch
+   - Merge the original branch into `main`
+   - Push `main` to origin
+   - Delete **only** the original feature branch (locally and remotely)
+
+## Critical Rules
+- Never delete the `main` branch.
+"""

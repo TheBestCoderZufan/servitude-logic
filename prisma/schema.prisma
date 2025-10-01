@@ -1,0 +1,491 @@
+// prisma/schema.prisma
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  PROJECT_MANAGER
+  DEVELOPER
+  CLIENT
+}
+
+// Defines the possible statuses for a project.
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+// Defines the possible statuses for a task.
+enum TaskStatus {
+  BACKLOG
+  IN_PROGRESS
+  BLOCKED
+  READY_FOR_REVIEW
+  CLIENT_APPROVED
+  DONE
+}
+
+enum TaskTransitionContext {
+  STATUS_CHANGE
+  BILLING_DEFERMENT
+}
+
+// Defines the priority levels for a task.
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Defines the possible statuses for an invoice.
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+}
+
+// Defines workflow states for the client intake pipeline.
+enum IntakeStatus {
+  REVIEW_PENDING
+  RETURNED_FOR_INFO
+  APPROVED_FOR_ESTIMATE
+  ESTIMATE_IN_PROGRESS
+  ESTIMATE_SENT
+  CLIENT_SCOPE_APPROVED
+  CLIENT_SCOPE_DECLINED
+  ARCHIVED
+}
+
+// Defines workflow states for proposal and estimation lifecycle.
+enum ProposalStatus {
+  DRAFT
+  IN_REVIEW
+  CLIENT_APPROVAL_PENDING
+  APPROVED
+  DECLINED
+}
+
+// Represents the macro workflow phase for a project.
+enum ProjectWorkflowPhase {
+  INTAKE
+  ESTIMATION
+  KICKOFF
+  DELIVERY
+  REVIEW
+  BILLING
+  COMPLETE
+  ARCHIVED
+}
+
+// Tracks the validation journey for invoices.
+enum InvoiceWorkflowState {
+  AWAITING_VALIDATION
+  READY_TO_SEND
+  SCHEDULED
+  SENT_AND_PENDING_PAYMENT
+  IN_REMINDER_SEQUENCE
+  PAID_AND_CONFIRMED
+  CLOSED
+}
+
+// Priority levels for intake triage ordering.
+enum IntakePriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Approval status for uploaded project files
+enum FileApprovalStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum ReviewChecklistStatus {
+  PENDING
+  IN_REVIEW
+  COMPLETE
+  DEFERRED
+}
+
+// MODELS //
+
+// User model for authenticating with Clerk.
+// The `clerkId` is the primary key, linking to your Clerk authentication users.
+model User {
+  clerkId String  @id @unique
+  email   String  @unique
+  name    String?
+  role    Role    @default(DEVELOPER)
+
+  // Additional profile fields
+  phone    String?
+  company  String?
+  jobTitle String?
+  bio      String?
+
+  // Preferences
+  timezone   String? @default("America/New_York")
+  language   String? @default("en")
+  dateFormat String? @default("MM/DD/YYYY")
+  timeFormat String? @default("12h")
+
+  // Notification preferences
+  emailNotifications      Boolean?          @default(true)
+  pushNotifications       Boolean?          @default(true)
+  notificationPreferences String? // JSON string for individual notification settings
+  managedProjects         Project[]         @relation("ProjectManager")
+  assignedTasks           Task[]            @relation("TaskAssignee")
+  timeLogs                TimeLog[]
+  comments                Comment[]
+  uploadedFiles           File[]            @relation("UploadedFiles")
+  approvedFiles           File[]            @relation("ApprovedFiles")
+  clients                 Client[]
+  activities              ActivityLog[]
+  assignedIntakes         Intake[]          @relation("AssignedIntake")
+  preparedProposals       ProjectProposal[] @relation("ProposalPreparer")
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  fileApprovals           FileApproval[]
+  taskStatusActivities    TaskStatusHistory[] @relation("TaskStatusActor")
+  authoredAnnotations     FileAnnotation[]    @relation("FileAnnotationAuthor")
+  resolvedAnnotations     FileAnnotation[]    @relation("FileAnnotationResolver")
+  reviewChecklistUpdates  FileReviewChecklistItem[] @relation("ChecklistUpdater")
+}
+
+// Client model to store information about your clients.
+// Each client can be associated with a User account for portal access.
+model Client {
+  id           String  @id @default(cuid())
+  companyName  String
+  contactName  String
+  contactEmail String  @unique
+  contactPhone String?
+  address      String?
+
+  // A client is represented by a User in the system.
+  user     User      @relation(fields: [userId], references: [clerkId])
+  userId   String    @unique // Foreign key to User model
+  projects Project[]
+  intakes  Intake[]
+
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  website                String?
+  industry               String?
+  notes                  String?
+  projectBudget          Float?
+  preferredCommunication String?  @default("email")
+}
+
+// Project model to manage all project details.
+model Project {
+  id                     String               @id @default(cuid())
+  name                   String
+  description            String?
+  status                 ProjectStatus        @default(PLANNING)
+  workflowPhase          ProjectWorkflowPhase @default(INTAKE)
+  intakeStatus           IntakeStatus         @default(REVIEW_PENDING)
+  workflowPhaseUpdatedAt DateTime?
+  startDate              DateTime
+  endDate                DateTime?
+  kickoffScheduledAt     DateTime?
+  kickoffCompletedAt     DateTime?
+  workflowMetadata       Json?
+
+  // A project belongs to one client.
+  client   Client @relation(fields: [clientId], references: [id])
+  clientId String
+
+  // A project is managed by one user (Project Manager).
+  projectManager   User   @relation("ProjectManager", fields: [projectManagerId], references: [clerkId])
+  projectManagerId String
+
+  // Relationships
+  tasks    Task[]
+  invoices Invoice[]
+  files    File[]
+  intake   Intake?
+  proposal ProjectProposal?
+
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  activities ActivityLog[]
+}
+
+// Task model for breaking down projects into manageable units.
+model Task {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus   @default(BACKLOG)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  isDeliverable Boolean   @default(false)
+  deliverableKey String?
+
+  // A task belongs to one project.
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  // A task can be assigned to one user.
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [clerkId])
+  assigneeId String?
+
+  // Relationships
+  comments Comment[]
+  timeLogs TimeLog[]
+
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  activities    ActivityLog[]
+  statusHistory TaskStatusHistory[]
+}
+
+model TaskStatusHistory {
+  id         String                @id @default(cuid())
+  task       Task                  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  taskId     String
+  fromStatus TaskStatus?
+  toStatus   TaskStatus?
+  context    TaskTransitionContext @default(STATUS_CHANGE)
+  note       String
+  actor      User                  @relation("TaskStatusActor", fields: [actorId], references: [clerkId])
+  actorId    String
+  createdAt  DateTime              @default(now())
+}
+
+// Comment model for discussions on tasks.
+model Comment {
+  id      String @id @default(cuid())
+  content String
+
+  // A comment is written by one user.
+  author   User   @relation(fields: [authorId], references: [clerkId])
+  authorId String
+
+  // A comment belongs to one task.
+  task   Task   @relation(fields: [taskId], references: [id])
+  taskId String
+
+  createdAt DateTime @default(now())
+}
+
+// TimeLog model for tracking time spent on tasks.
+model TimeLog {
+  id          String   @id @default(cuid())
+  hours       Float
+  date        DateTime
+  description String?
+
+  // A time log is associated with one task.
+  task   Task   @relation(fields: [taskId], references: [id])
+  taskId String
+
+  // A time log is created by one user.
+  user   User   @relation(fields: [userId], references: [clerkId])
+  userId String
+
+  createdAt DateTime @default(now())
+}
+
+// Invoice model for billing clients.
+model Invoice {
+  id                        String               @id @default(cuid())
+  invoiceNumber             String               @unique
+  amount                    Float
+  status                    InvoiceStatus        @default(DRAFT)
+  workflowState             InvoiceWorkflowState @default(AWAITING_VALIDATION)
+  issueDate                 DateTime
+  dueDate                   DateTime
+  validatedAt               DateTime?
+  validationSummary         String?
+  scheduledSendAt           DateTime?
+  sentAt                    DateTime?
+  reminderSequenceStartedAt DateTime?
+  closedAt                  DateTime?
+  metadata                  Json?
+
+  // An invoice is for one project.
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activities ActivityLog[]
+}
+
+// Intake submissions capture the initial client request before project kickoff.
+model Intake {
+  id                    String         @id @default(cuid())
+  client                Client         @relation(fields: [clientId], references: [id])
+  clientId              String
+  project               Project?       @relation(fields: [projectId], references: [id])
+  projectId             String?        @unique
+  status                IntakeStatus   @default(REVIEW_PENDING)
+  assignedAdmin         User?          @relation("AssignedIntake", fields: [assignedAdminId], references: [clerkId])
+  assignedAdminId       String?
+  checklist             Json?
+  submittedAt           DateTime       @default(now())
+  approvedForEstimateAt DateTime?
+  returnedForInfoAt     DateTime?
+  estimateInProgressAt  DateTime?
+  estimateSentAt        DateTime?
+  clientDecisionAt      DateTime?
+  notes                 String?
+  summary               String?
+  formData              Json?
+  priority              IntakePriority @default(MEDIUM)
+  updatedAt             DateTime       @updatedAt
+
+  activities ActivityLog[]
+  proposal   ProjectProposal?
+}
+
+// Proposal records track estimation and scope approvals linked to a project.
+model ProjectProposal {
+  id               String         @id @default(cuid())
+  project          Project?       @relation(fields: [projectId], references: [id])
+  projectId        String?        @unique
+  intake           Intake?        @relation(fields: [intakeId], references: [id])
+  intakeId         String?        @unique
+  status           ProposalStatus @default(DRAFT)
+  preparedBy       User?          @relation("ProposalPreparer", fields: [preparedById], references: [clerkId])
+  preparedById     String?
+  summary          String?
+  lineItems        Json?
+  estimatedHours   Float?
+  estimateAmount   Float?
+  selectedModules  Json?
+  sentAt           DateTime?
+  clientViewedAt   DateTime?
+  clientApprovedAt DateTime?
+  clientDeclinedAt DateTime?
+  approvalNotes    String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  activities ActivityLog[]
+}
+
+// File model for storing project-related assets.
+model File {
+  id       String @id @default(cuid())
+  fileName String
+  url      String // URL to the file stored in a service like S3
+  fileType String
+
+  // Versioning and approvals
+  version        Int                @default(1)
+  approvalStatus FileApprovalStatus @default(PENDING)
+  approvedAt     DateTime?
+  approvedBy     User?              @relation("ApprovedFiles", fields: [approvedById], references: [clerkId])
+  approvedById   String?
+  approvals      FileApproval[]
+
+  // A file is uploaded by one user.
+  uploadedBy   User   @relation("UploadedFiles", fields: [uploadedById], references: [clerkId])
+  uploadedById String
+
+  // A file belongs to one project.
+  project   Project @relation(fields: [projectId], references: [id])
+  projectId String
+
+  uploadedAt DateTime @default(now())
+  annotations     FileAnnotation[]
+  reviewChecklist FileReviewChecklistItem[]
+}
+
+model FileApproval {
+  id     String  @id @default(cuid())
+  action String // APPROVED | REVISION_REQUESTED | UPLOADED | REPLACED
+  note   String?
+
+  file   File   @relation(fields: [fileId], references: [id])
+  fileId String
+
+  actor   User   @relation(fields: [actorId], references: [clerkId])
+  actorId String
+
+  createdAt DateTime @default(now())
+}
+
+model FileAnnotation {
+  id           String @id @default(cuid())
+  file         File   @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fileId       String
+  author       User   @relation("FileAnnotationAuthor", fields: [authorId], references: [clerkId])
+  authorId     String
+  page         Int?
+  position     Json?
+  comment      String
+  resolved     Boolean @default(false)
+  resolvedAt   DateTime?
+  resolvedBy   User?   @relation("FileAnnotationResolver", fields: [resolvedById], references: [clerkId])
+  resolvedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model FileReviewChecklistItem {
+  id          String                @id @default(cuid())
+  file        File                  @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  fileId      String
+  key         String
+  label       String
+  description String?
+  status      ReviewChecklistStatus @default(PENDING)
+  note        String?
+  updatedBy   User?                 @relation("ChecklistUpdater", fields: [updatedById], references: [clerkId])
+  updatedById String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  text       String // e.g., "John Doe completed 'User registration form'"
+  type       String // e.g., "task_completed", "invoice_sent"
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  // Link the activity to the user who performed the action
+  user   User   @relation(fields: [userId], references: [clerkId])
+  userId String
+
+  // Optional links to other related models
+  project   Project? @relation(fields: [projectId], references: [id])
+  projectId String?
+
+  task   Task?   @relation(fields: [taskId], references: [id])
+  taskId String?
+
+  intake   Intake? @relation(fields: [intakeId], references: [id])
+  intakeId String?
+
+  proposal   ProjectProposal? @relation(fields: [proposalId], references: [id])
+  proposalId String?
+
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+  invoiceId String?
+}
+
+// npx prisma migrate dev --name "Foreign key to your User model"
+// npx prisma migrate dev --name "ActivityLogs model"
+// npx prisma migrate dev --name "add_user_settings_fields"
+// npx prisma migrate dev --name add_client_fields

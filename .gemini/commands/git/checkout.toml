@@ -1,0 +1,50 @@
+# In: ~/.gemini/commands/git/checkout.toml
+# Invoked via: /git:checkout "<feature description>"
+
+description = "Checks repo is clean and fully pushed, then creates a feature branch from the description."
+
+prompt = """
+# Task: Checkout feature branch safely
+
+Feature description: {{args}}
+
+You are a git assistant. Follow this flow using the ShellTool:
+
+1) Verify the repository is clean and fully pushed:
+   - Working tree and index clean: `git status --porcelain` must be empty.
+   - Upstream configured for HEAD.
+   - Ahead=0 vs upstream: `git rev-list --left-right --count @{u}...HEAD` -> the right (ahead) count must be 0.
+
+2) If all checks pass:
+   - Compute a slug from the feature description:
+     - kebab-case; lowercase; keep a–z and 0–9; convert other chars/spaces to "-";
+       collapse repeats; trim leading/trailing "-".
+   - New branch name: `feature/<slug>`.
+   - Run: `git checkout -b feature/<slug>`.
+   - Print the created branch name and that it’s ready.
+
+3) If any check fails:
+   - Do NOT create a branch.
+   - Tell the user exactly what's missing and suggest:
+     - `git add -A`
+     - `git commit -m "<message>"`
+     - `git push` (or `git push -u origin <current-branch>` if no upstream)
+
+Use the diagnostics below (captured before tool calls) to decide, then execute the needed commands with confirmation.
+
+## Diagnostics
+Current branch:
+!{git rev-parse --abbrev-ref HEAD}
+
+Porcelain status (empty means clean):
+!{git status --porcelain}
+
+Upstream (may error if none):
+!{git rev-parse --abbrev-ref --symbolic-full-name @{u}}
+
+Ahead/behind (left=behind right=ahead):
+!{git rev-list --left-right --count @{u}...HEAD}
+
+Suggested slug from description:
+!{printf %s {{args}} | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g; s/-+/-/g'}
+"""
