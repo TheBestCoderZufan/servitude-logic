@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { getUserRole, isClientRole } from "@/lib/api-helpers";
 import { redirect } from "next/navigation";
+import AdminDashboardLayout from "@/components/layout/AdminDashboardLayout";
 import InvoicesPageClient from "./InvoicesPageClient";
 
 export const revalidate = 0;
@@ -134,15 +135,17 @@ export default async function InvoicesPage({ searchParams }) {
   const initialSort = { sortBy: sortKey, sortOrder: sortOrderParam };
 
   return (
-    <InvoicesPageClient
-      initialInvoices={invoices}
-      initialStats={stats}
-      initialSearch={search}
-      initialStatus={status}
-      initialClient={client}
-      initialDate={date}
-      initialPagination={pagination}
-      initialSort={initialSort}
-    />
+    <AdminDashboardLayout activeTab="invoices">
+      <InvoicesPageClient
+        initialInvoices={invoices}
+        initialStats={stats}
+        initialSearch={search}
+        initialStatus={status}
+        initialClient={client}
+        initialDate={date}
+        initialPagination={pagination}
+        initialSort={initialSort}
+      />
+    </AdminDashboardLayout>
   );
 }

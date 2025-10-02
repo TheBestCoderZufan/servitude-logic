@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getUserRole, isClientRole } from "@/lib/api-helpers";
+import AdminDashboardLayout from "@/components/layout/AdminDashboardLayout";
 import ReportsPageClient from "./ReportsPageClient";
 
 export const revalidate = 0;
@@ -106,12 +107,14 @@ export default async function ReportsPage({ searchParams }) {
   ];
 
   return (
-    <ReportsPageClient
-      initialMetrics={metrics}
-      initialProjectStats={projectStats}
-      initialTeamPerformance={teamPerformanceFormatted}
-      initialRecentActivity={recentActivityFormatted}
-      initialDateRange={dateRange}
-    />
+    <AdminDashboardLayout activeTab="reports">
+      <ReportsPageClient
+        initialMetrics={metrics}
+        initialProjectStats={projectStats}
+        initialTeamPerformance={teamPerformanceFormatted}
+        initialRecentActivity={recentActivityFormatted}
+        initialDateRange={dateRange}
+      />
+    </AdminDashboardLayout>
   );
 }

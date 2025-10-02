@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { getUserRole, isClientRole } from "@/lib/api-helpers";
+import AdminDashboardLayout from "@/components/layout/AdminDashboardLayout";
 import SettingsPageClient from "./SettingsPageClient";
 
 export const revalidate = 0;
@@ -48,6 +49,13 @@ export default async function SettingsPage({ searchParams }) {
   const sp = await searchParams;
   const tab = typeof sp?.tab === "string" ? sp.tab : "profile";
   return (
-    <SettingsPageClient initialProfile={profile} initialNotifications={notifications} initialTeam={initialTeam} initialTab={tab} />
+    <AdminDashboardLayout activeTab="settings">
+      <SettingsPageClient
+        initialProfile={profile}
+        initialNotifications={notifications}
+        initialTeam={initialTeam}
+        initialTab={tab}
+      />
+    </AdminDashboardLayout>
   );
 }

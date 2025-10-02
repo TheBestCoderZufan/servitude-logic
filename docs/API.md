@@ -2140,16 +2140,22 @@ Admin intake queue client component built with Tailwind primitives.
 ## admin/invoices/InvoicesPageClient
 <a name="exp_module_admin/invoices/InvoicesPageClient--module.exports"></a>
 
-### module.exports(props) ⏏
-Client island for Admin Invoices page.
+### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
+Admin invoices page client component.
 
 **Kind**: Exported function  
 
-| Param | Type |
-| --- | --- |
-| props | <code>Object</code> | 
-| props.initialInvoices | <code>Array.&lt;Object&gt;</code> | 
-| props.initialStats | <code>Object</code> | 
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| props | <code>Object</code> |  | Component props. |
+| props.initialInvoices | <code>Array.&lt;Object&gt;</code> |  | Prefetched invoices. |
+| props.initialStats | <code>Object</code> |  | Prefetched stats summary. |
+| [props.initialSearch] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | Seed search term. |
+| [props.initialStatus] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Seed status filter. |
+| [props.initialClient] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Seed client filter. |
+| [props.initialDate] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Seed time filter. |
+| [props.initialPagination] | <code>Object</code> |  | Pagination metadata. |
+| [props.initialSort] | <code>Object</code> |  | Sorting metadata. |
 
 <a name="module_admin/projects/ProjectsPageClient"></a>
 
@@ -2177,9 +2183,40 @@ Receives SSR data and preserves interactivity (filters, pagination, view).
 <a name="module_admin/reports/ReportsPageClient"></a>
 
 ## admin/reports/ReportsPageClient
+<a name="exp_module_admin/reports/ReportsPageClient--module.exports"></a>
+
+### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
+Reports and analytics dashboard for admins.
+
+**Kind**: Exported function  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| props | <code>Object</code> |  | Component props. |
+| props.initialMetrics | <code>Array.&lt;Object&gt;</code> |  | High-level metric cards. |
+| props.initialProjectStats | <code>Array.&lt;Object&gt;</code> |  | Status distribution data. |
+| props.initialTeamPerformance | <code>Array.&lt;Object&gt;</code> |  | Team performance entries. |
+| props.initialRecentActivity | <code>Array.&lt;Object&gt;</code> |  | Recent activity feed items. |
+| [props.initialDateRange] | <code>string</code> | <code>&quot;\&quot;last-30-days\&quot;&quot;</code> | Seeded date range filter. |
+
 <a name="module_admin/settings/SettingsPageClient"></a>
 
 ## admin/settings/SettingsPageClient
+<a name="exp_module_admin/settings/SettingsPageClient--module.exports"></a>
+
+### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
+Admin settings client component.
+
+**Kind**: Exported function  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| props | <code>Object</code> |  | Component props. |
+| props.initialProfile | <code>Object</code> \| <code>null</code> |  | Prefetched profile data. |
+| props.initialNotifications | <code>Array.&lt;Object&gt;</code> |  | Notification preferences. |
+| props.initialTeam | <code>Array.&lt;Object&gt;</code> |  | Team roster data. |
+| [props.initialTab] | <code>string</code> | <code>&quot;\&quot;profile\&quot;&quot;</code> | Seed tab identifier. |
+
 <a name="module_admin/tasks/TasksPageClient"></a>
 
 ## admin/tasks/TasksPageClient
