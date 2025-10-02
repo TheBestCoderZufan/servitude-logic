@@ -12,7 +12,7 @@ import gsap from "gsap";
 import Reveal from "reveal.js";
 import AOS from "aos";
 import { animate } from "animejs";
-import { animated, useSprings } from "react-spring";
+import { animated, useSprings } from "@react-spring/web";
 import Lottie from "react-lottie";
 import { loadSlim } from "@tsparticles/slim";
 import Button from "@/components/ui/shadcn/Button";

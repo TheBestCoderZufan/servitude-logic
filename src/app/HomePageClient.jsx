@@ -8,7 +8,7 @@ import "reveal.js/dist/reveal.css";
 import AOS from "aos";
 import { animate, stagger } from "animejs";
 import Reveal from "reveal.js";
-import { animated, useSprings } from "react-spring";
+import { animated, useSprings } from "@react-spring/web";
 import { useEffect, useMemo, useRef } from "react";
 import HeroSectionComponent from "@/components/ui/landingPage/HeroSectionComponent";
 import Button from "@/components/ui/shadcn/Button";
