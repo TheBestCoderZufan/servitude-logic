@@ -49,6 +49,8 @@
 <dd></dd>
 <dt><a href="#module_app/workflow/page">app/workflow/page</a></dt>
 <dd></dd>
+<dt><a href="#module_components/layout/AdminDashboardLayout">components/layout/AdminDashboardLayout</a></dt>
+<dd></dd>
 <dt><a href="#module_components/layout/ClientDashboardLayout">components/layout/ClientDashboardLayout</a></dt>
 <dd></dd>
 <dt><a href="#module_data/page/contact/contactAnimationConfig">data/page/contact/contactAnimationConfig</a></dt>
@@ -152,12 +154,6 @@
 ## Constants
 
 <dl>
-<dt><a href="#PageContainer">PageContainer</a></dt>
-<dd><p>Wrapper for the admin user directory page content.</p>
-</dd>
-<dt><a href="#HeaderSection">HeaderSection</a></dt>
-<dd><p>Header section combining title and actions.</p>
-</dd>
 <dt><a href="#metadata">metadata</a> : <code>Object</code></dt>
 <dd><p>metadata
 SEO metadata for the services landing page.</p>
@@ -1156,6 +1152,23 @@ metadata
 SEO metadata for the workflow landing page.
 
 **Kind**: static constant of [<code>module.exports</code>](#exp_module_app/workflow/page--module.exports)  
+<a name="module_components/layout/AdminDashboardLayout"></a>
+
+## components/layout/AdminDashboardLayout
+<a name="exp_module_components/layout/AdminDashboardLayout--module.exports"></a>
+
+### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
+AdminDashboardLayout renders the admin portal chrome (sidebar + top bar)
+using Tailwind utility classes and next-themes for color mode.
+
+**Kind**: Exported function  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| props | <code>Object</code> |  | Component props. |
+| props.children | <code>React.ReactNode</code> |  | Admin route content. |
+| [props.activeTab] | <code>string</code> | <code>&quot;\&quot;dashboard\&quot;&quot;</code> | Active navigation tab. |
+
 <a name="module_components/layout/ClientDashboardLayout"></a>
 
 ## components/layout/ClientDashboardLayout
@@ -1860,10 +1873,12 @@ deferring styled-components values to the enforced route-level mode policy.
 
 **Kind**: Exported function  
 
-| Param | Type | Description |
-| --- | --- | --- |
-| props | <code>Object</code> | Component props. |
-| props.children | <code>React.ReactNode</code> | Descendant content. |
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| props | <code>Object</code> |  | Component props. |
+| props.children | <code>React.ReactNode</code> |  | Descendant content. |
+| [props.initialPreference] | <code>&quot;light&quot;</code> \| <code>&quot;dark&quot;</code> \| <code>&quot;system&quot;</code> | <code>&quot;system&quot;</code> | Preference from request cookies. |
+| [props.initialMode] | <code>&quot;light&quot;</code> \| <code>&quot;dark&quot;</code> | <code>&quot;light&quot;</code> | Initial resolved mode from the server. |
 
 <a name="module_providers/ThemeProvider--module.exports..ThemeBridge"></a>
 
@@ -1879,25 +1894,129 @@ route-level constraints (only admin/dashboard routes may use dark mode).
 | props | <code>Object</code> | Component props. |
 | props.children | <code>React.ReactNode</code> | Descendant nodes. |
 | props.scoped | <code>boolean</code> | Whether the current route is eligible for dark mode. |
+| props.initialMode | <code>&quot;light&quot;</code> \| <code>&quot;dark&quot;</code> | Server-derived initial color mode. |
 
 <a name="module_admin/AdminPageClient"></a>
 
 ## admin/AdminPageClient
+
+* [admin/AdminPageClient](#module_admin/AdminPageClient)
+    * [module.exports(props)](#exp_module_admin/AdminPageClient--module.exports) ⇒ <code>JSX.Element</code> ⏏
+        * [~EMPTY_PROGRESS](#module_admin/AdminPageClient--module.exports..EMPTY_PROGRESS) : <code>Object</code>
+        * [~STATUS_BADGE_CLASSES](#module_admin/AdminPageClient--module.exports..STATUS_BADGE_CLASSES) : <code>Record.&lt;string, string&gt;</code>
+        * [~StatusBadge(status)](#module_admin/AdminPageClient--module.exports..StatusBadge) ⇒ <code>JSX.Element</code>
+        * [~StatCard(props)](#module_admin/AdminPageClient--module.exports..StatCard) ⇒ <code>JSX.Element</code>
+        * [~QuickActionCard(props)](#module_admin/AdminPageClient--module.exports..QuickActionCard) ⇒ <code>JSX.Element</code>
+        * [~calculateProjectProgress(project)](#module_admin/AdminPageClient--module.exports..calculateProjectProgress) ⇒ <code>number</code>
+        * [~buildDeliverableMetrics(progress)](#module_admin/AdminPageClient--module.exports..buildDeliverableMetrics) ⇒ <code>Array.&lt;{label: string, value: number, tone: string}&gt;</code>
+        * [~buildDeliverableSegments(progress)](#module_admin/AdminPageClient--module.exports..buildDeliverableSegments) ⇒ <code>Array.&lt;{tone: string, width: number}&gt;</code>
+
 <a name="exp_module_admin/AdminPageClient--module.exports"></a>
 
-### module.exports(props) ⏏
-Admin dashboard client island. Receives initial SSR data and preserves
-interactivity and refresh via API endpoints.
+### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
+Admin dashboard client component.
 
 **Kind**: Exported function  
 
-| Param | Type |
-| --- | --- |
-| props | <code>Object</code> | 
-| props.initialStats | <code>Object</code> | 
-| props.initialRecentProjects | <code>Array.&lt;Object&gt;</code> | 
-| props.initialUpcomingTasks | <code>Array.&lt;Object&gt;</code> | 
-| props.initialRecentActivity | <code>Array.&lt;Object&gt;</code> | 
+| Param | Type | Description |
+| --- | --- | --- |
+| props | <code>Object</code> | Component props. |
+| props.initialStats | <code>Object</code> | Prefetched stats payload. |
+| props.initialRecentProjects | <code>Array.&lt;Object&gt;</code> | Recent project summaries. |
+| props.initialUpcomingTasks | <code>Array.&lt;Object&gt;</code> | Upcoming tasks collection. |
+| props.initialRecentActivity | <code>Array.&lt;Object&gt;</code> | Activity feed rows. |
+| [props.initialReadyForReview] | <code>Array.&lt;Object&gt;</code> | Tasks awaiting review. |
+| [props.initialBlockedTasks] | <code>Array.&lt;Object&gt;</code> | Blocked task list. |
+| [props.initialDependencyAlerts] | <code>Array.&lt;Object&gt;</code> | Dependency alerts. |
+| [props.initialDeliverableProgress] | <code>Object</code> | Deliverable summary. |
+| [props.initialUpcomingDeliverables] | <code>Array.&lt;Object&gt;</code> | Upcoming deliverables. |
+| [props.initialBillingSummaries] | <code>Array.&lt;Object&gt;</code> | Billing readiness summaries. |
+
+<a name="module_admin/AdminPageClient--module.exports..EMPTY_PROGRESS"></a>
+
+#### module.exports~EMPTY\_PROGRESS : <code>Object</code>
+Default deliverable progress shape.
+
+**Kind**: inner constant of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+<a name="module_admin/AdminPageClient--module.exports..STATUS_BADGE_CLASSES"></a>
+
+#### module.exports~STATUS\_BADGE\_CLASSES : <code>Record.&lt;string, string&gt;</code>
+Tailwind color tokens keyed by task status.
+
+**Kind**: inner constant of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+<a name="module_admin/AdminPageClient--module.exports..StatusBadge"></a>
+
+#### module.exports~StatusBadge(status) ⇒ <code>JSX.Element</code>
+Returns a color-coded badge for task status values.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| status | <code>string</code> | Workflow status string. |
+
+<a name="module_admin/AdminPageClient--module.exports..StatCard"></a>
+
+#### module.exports~StatCard(props) ⇒ <code>JSX.Element</code>
+Displays a single stat card with icon and delta copy.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| props | <code>Object</code> | Component props. |
+| props.title | <code>string</code> | Label for the stat tile. |
+| props.value | <code>string</code> \| <code>number</code> | Primary value. |
+| props.delta | <code>string</code> | Secondary delta label. |
+| props.isPositive | <code>boolean</code> | Whether delta is an improvement. |
+| props.icon | <code>function</code> | Icon component to render. |
+| props.accent | <code>string</code> | Tailwind color token for the icon wrapper. |
+
+<a name="module_admin/AdminPageClient--module.exports..QuickActionCard"></a>
+
+#### module.exports~QuickActionCard(props) ⇒ <code>JSX.Element</code>
+Renders a quick action shortcut card.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| props | <code>Object</code> | Component props. |
+| props.action | <code>Object</code> | Quick action metadata. |
+
+<a name="module_admin/AdminPageClient--module.exports..calculateProjectProgress"></a>
+
+#### module.exports~calculateProjectProgress(project) ⇒ <code>number</code>
+Calculates project progress based on completed tasks.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+**Returns**: <code>number</code> - Percentage completion between 0 and 100.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| project | <code>Object</code> | Project record including task list. |
+
+<a name="module_admin/AdminPageClient--module.exports..buildDeliverableMetrics"></a>
+
+#### module.exports~buildDeliverableMetrics(progress) ⇒ <code>Array.&lt;{label: string, value: number, tone: string}&gt;</code>
+Formats deliverable gate metrics for display.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| progress | <code>Object</code> | Deliverable progress snapshot. |
+
+<a name="module_admin/AdminPageClient--module.exports..buildDeliverableSegments"></a>
+
+#### module.exports~buildDeliverableSegments(progress) ⇒ <code>Array.&lt;{tone: string, width: number}&gt;</code>
+Computes stacked bar segments for deliverable status visualization.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/AdminPageClient--module.exports)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| progress | <code>Object</code> | Deliverable progress summary. |
 
 <a name="module_admin/clients/[id]/ClientDetailPageClient"></a>
 
@@ -1905,24 +2024,55 @@ interactivity and refresh via API endpoints.
 <a name="module_admin/clients/ClientsPageClient"></a>
 
 ## admin/clients/ClientsPageClient
+
+* [admin/clients/ClientsPageClient](#module_admin/clients/ClientsPageClient)
+    * [module.exports(props)](#exp_module_admin/clients/ClientsPageClient--module.exports) ⇒ <code>JSX.Element</code> ⏏
+        * [~StatusPill(props)](#module_admin/clients/ClientsPageClient--module.exports..StatusPill) ⇒ <code>JSX.Element</code>
+        * [~IconButton(props)](#module_admin/clients/ClientsPageClient--module.exports..IconButton) ⇒ <code>JSX.Element</code>
+
 <a name="exp_module_admin/clients/ClientsPageClient--module.exports"></a>
 
 ### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
-Interactive client list UI. Receives initial SSR data and
-continues hydration with client-side interactivity (modals, toasts, actions).
+Clients page interactive UI. Accepts server-rendered data and continues
+hydration with client-side fetching, modals, and inline actions.
 
 **Kind**: Exported function  
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| props | <code>Object</code> |  | Component props |
-| props.initialClients | <code>Array.&lt;Object&gt;</code> |  | Pre-fetched client rows with stats |
-| props.initialPagination | <code>Object</code> |  | Pagination info for the list |
-| props.initialStats | <code>Object</code> |  | Summary stats for the header cards |
-| [props.initialPage] | <code>number</code> | <code>1</code> | Initial page |
-| [props.initialLimit] | <code>number</code> | <code>10</code> | Initial page size |
-| [props.initialSearch] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | Initial search term |
-| [props.initialStatus] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial status filter |
+| props | <code>Object</code> |  | Component props. |
+| props.initialClients | <code>Array.&lt;Object&gt;</code> |  | Prefetched client records. |
+| props.initialPagination | <code>Object</code> |  | Pagination metadata. |
+| props.initialStats | <code>Object</code> |  | Header stat payload. |
+| [props.initialPage] | <code>number</code> | <code>1</code> | Seed page. |
+| [props.initialLimit] | <code>number</code> | <code>10</code> | Seed limit. |
+| [props.initialSearch] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | Seed search term. |
+| [props.initialStatus] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Seed status filter. |
+
+<a name="module_admin/clients/ClientsPageClient--module.exports..StatusPill"></a>
+
+#### module.exports~StatusPill(props) ⇒ <code>JSX.Element</code>
+Pill-styled status indicator used in table and card views.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/clients/ClientsPageClient--module.exports)  
+
+| Param | Type |
+| --- | --- |
+| props | <code>Object</code> | 
+
+<a name="module_admin/clients/ClientsPageClient--module.exports..IconButton"></a>
+
+#### module.exports~IconButton(props) ⇒ <code>JSX.Element</code>
+Icon-only button used for compact actions.
+
+**Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/clients/ClientsPageClient--module.exports)  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| props | <code>Object</code> | Component props. |
+| props.children | <code>React.ReactNode</code> | Icon node. |
+| [props.active] | <code>boolean</code> | Whether the button is in an active state. |
+| [props.className] | <code>string</code> | Additional class names. |
 
 <a name="module_admin/intake/[id]/proposal/ProposalWorkspacePageClient"></a>
 
@@ -1948,13 +2098,13 @@ capture proposal summaries, and control workflow status.
 ## admin/intake/IntakeQueuePageClient
 
 * [admin/intake/IntakeQueuePageClient](#module_admin/intake/IntakeQueuePageClient)
-    * [module.exports(props)](#exp_module_admin/intake/IntakeQueuePageClient--module.exports) ⏏
+    * [module.exports(props)](#exp_module_admin/intake/IntakeQueuePageClient--module.exports) ⇒ <code>JSX.Element</code> ⏏
         * [~Intake](#module_admin/intake/IntakeQueuePageClient--module.exports..Intake) : <code>Object</code>
 
 <a name="exp_module_admin/intake/IntakeQueuePageClient--module.exports"></a>
 
-### module.exports(props) ⏏
-Admin intake queue client component.
+### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
+Admin intake queue client component built with Tailwind primitives.
 
 **Kind**: Exported function  
 
@@ -1962,7 +2112,7 @@ Admin intake queue client component.
 | --- | --- | --- |
 | props | <code>Object</code> | Component props. |
 | props.initialIntakes | <code>Array.&lt;Intake&gt;</code> | Intake records sourced from the server. |
-| props.statusOptions | <code>Array</code> | Status filter options for the view. |
+| props.statusOptions | <code>Array.&lt;{value:string, label:string}&gt;</code> | Status filter options. |
 | props.viewer | <code>Object</code> | Details about the signed-in admin. |
 | props.activeStatus | <code>string</code> | Currently applied status filter key. |
 
@@ -2036,21 +2186,20 @@ Receives SSR data and preserves interactivity (filters, pagination, view).
 <a name="exp_module_admin/tasks/TasksPageClient--module.exports"></a>
 
 ### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
-Client island for Tasks page interactivity. Receives SSR data and
-preserves filtering, view switching, and follow-up API fetching.
+Tasks page client island.
 
 **Kind**: Exported function  
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
-| props | <code>Object</code> |  | Component props |
-| props.initialTasks | <code>Array.&lt;Object&gt;</code> |  | Initial tasks list |
-| props.initialStats | <code>Object</code> |  | Initial stats object { total, inProgress, completed, overdue } |
-| [props.initialSearch] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | Initial search term |
-| [props.initialStatus] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial status filter |
-| [props.initialPriority] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial priority filter |
-| [props.initialProject] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial project filter (id or name) |
-| [props.initialAssignee] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial assignee filter (clerkId) |
+| props | <code>Object</code> |  | Component props. |
+| props.initialTasks | <code>Array.&lt;Object&gt;</code> |  | Initial tasks list. |
+| props.initialStats | <code>Object</code> |  | Initial stats object { total, inProgress, completed, overdue }. |
+| [props.initialSearch] | <code>string</code> | <code>&quot;\&quot;\&quot;&quot;</code> | Initial search term. |
+| [props.initialStatus] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial status filter. |
+| [props.initialPriority] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial priority filter. |
+| [props.initialProject] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial project filter (name). |
+| [props.initialAssignee] | <code>string</code> | <code>&quot;\&quot;all\&quot;&quot;</code> | Initial assignee filter (name). |
 
 <a name="module_admin/users/UsersPageClient"></a>
 
@@ -2065,7 +2214,7 @@ preserves filtering, view switching, and follow-up API fetching.
 <a name="exp_module_admin/users/UsersPageClient--module.exports"></a>
 
 ### module.exports(props) ⇒ <code>JSX.Element</code> ⏏
-Interactive admin table for browsing and managing user roles.
+Interactive admin user directory.
 
 **Kind**: Exported function  
 
@@ -2074,34 +2223,34 @@ Interactive admin table for browsing and managing user roles.
 | props | <code>Object</code> | Component props. |
 | props.initialUsers | <code>Array.&lt;Object&gt;</code> | Prefetched user rows. |
 | props.initialPagination | <code>Object</code> | Pagination metadata. |
-| props.initialSort | <code>Object</code> | Initial sorting config. |
-| props.initialSearch | <code>string</code> | Initial search term. |
-| props.initialRole | <code>string</code> | Initial role filter. |
-| props.initialLimit | <code>number</code> | Initial page size. |
+| props.initialSort | <code>Object</code> | Sorting metadata. |
+| props.initialSearch | <code>string</code> | Seed search term. |
+| props.initialRole | <code>string</code> | Seed role filter. |
+| props.initialLimit | <code>number</code> | Seed page size. |
 
 <a name="module_admin/users/UsersPageClient--module.exports..parseSortValue"></a>
 
 #### module.exports~parseSortValue(value) ⇒ <code>Object</code>
-Splits a `sortBy:sortOrder` value into its components.
+Splits a combined `sortBy:sortOrder` string into parts.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/users/UsersPageClient--module.exports)  
-**Returns**: <code>Object</code> - Parsed sort params.  
+**Returns**: <code>Object</code> - Parsed values.  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| value | <code>string</code> | Combined sort representation. |
+| value | <code>string</code> | Combined sort value. |
 
 <a name="module_admin/users/UsersPageClient--module.exports..buildQueryString"></a>
 
 #### module.exports~buildQueryString(options) ⇒ <code>string</code>
-Builds a query string matching the API contract.
+Builds a query string accepted by the admin users API.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/users/UsersPageClient--module.exports)  
-**Returns**: <code>string</code> - Query string beginning after `?`.  
+**Returns**: <code>string</code> - Query string.  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| options | <code>Object</code> | Query options. |
+| options | <code>Object</code> | Query configuration. |
 | options.page | <code>number</code> | Page number. |
 | options.limit | <code>number</code> | Page size. |
 | [options.search] | <code>string</code> | Search term. |
@@ -2111,16 +2260,16 @@ Builds a query string matching the API contract.
 <a name="module_admin/users/UsersPageClient--module.exports..RoleSelect"></a>
 
 #### module.exports~RoleSelect(props) ⇒ <code>JSX.Element</code>
-Dropdown that updates a user's role via the admin API.
+Role dropdown wired to the admin users API.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_admin/users/UsersPageClient--module.exports)  
 
 | Param | Type | Description |
 | --- | --- | --- |
 | props | <code>Object</code> | Component props. |
-| props.userId | <code>string</code> | Target Clerk user id. |
+| props.userId | <code>string</code> | Target Clerk user ID. |
 | props.currentRole | <code>string</code> | Currently assigned role. |
-| props.onChangeRole | <code>function</code> | Handler invoked on role selection. |
+| props.onChangeRole | <code>function</code> | Persist handler. |
 
 <a name="module_app/contact/ContactPageClient"></a>
 
@@ -2973,18 +3122,6 @@ Memoizes the particle configuration used for the hero background.
 
 **Kind**: inner method of [<code>module.exports</code>](#exp_module_components/ui/landingPage/HeroSectionComponent--module.exports)  
 **Returns**: <code>object</code> - Particle options.  
-<a name="PageContainer"></a>
-
-## PageContainer
-Wrapper for the admin user directory page content.
-
-**Kind**: global constant  
-<a name="HeaderSection"></a>
-
-## HeaderSection
-Header section combining title and actions.
-
-**Kind**: global constant  
 <a name="metadata"></a>
 
 ## metadata : <code>Object</code>

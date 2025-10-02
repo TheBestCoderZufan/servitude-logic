@@ -6,7 +6,6 @@ import Script from "next/script";
 import SuspenseFallback from "@/components/Loading/SuspenseFallback";
 import { ClerkProvider } from "@clerk/nextjs";
 import ThemeProvider from "@/providers/ThemeProvider";
-import GlobalStyles from "@/styles/global-styles";
 import { ToastProvider } from "@/components/ui/Toast"; // Import ToastProvider
 import { Inter, Fira_Code } from "next/font/google";
 import { cookies, headers } from "next/headers";
@@ -119,10 +118,7 @@ export default async function RootLayout({ children }) {
           <ClerkProvider>
             <ThemeProvider initialPreference={initialPreference} initialMode={initialMode}>
               <Suspense fallback={<SuspenseFallback />}>
-                <ToastProvider>
-                  <GlobalStyles />
-                  {children}
-                </ToastProvider>
+                <ToastProvider>{children}</ToastProvider>
               </Suspense>
             </ThemeProvider>
           </ClerkProvider>

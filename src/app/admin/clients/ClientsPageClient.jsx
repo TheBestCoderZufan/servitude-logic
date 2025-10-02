@@ -1,10 +1,12 @@
 // src/app/admin/clients/ClientsPageClient.jsx
 /** @module admin/clients/ClientsPageClient */
 "use client";
-import { useEffect, useRef, useState } from "react";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useUser } from "@clerk/nextjs";
-// Lazy-load modal islands to reduce initial JS on list view
+import Button from "@/components/ui/shadcn/Button";
 const CreateClientForm = dynamic(() =>
   import("@/components/forms/CreateClientForm").then((m) => m.CreateClientForm)
 );
@@ -12,94 +14,84 @@ const ConfirmationDialog = dynamic(() =>
   import("@/components/ui/Modal").then((m) => m.ConfirmationDialog)
 );
 import { useToastNotifications } from "@/components/ui/Toast";
+import { cn } from "@/lib/utils/cn";
+import { formatCurrency, getInitials } from "@/lib/utils";
 import {
-  Card,
-  CardContent,
-  Button,
-  Input,
-  Select,
-  Badge,
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableCell,
-  EmptyState,
-  EmptyStateIcon,
-  EmptyStateTitle,
-  EmptyStateDescription,
-  StatusDot,
-} from "@/components/ui";
-import {
-  FiPlus,
-  FiSearch,
   FiDownload,
   FiEdit,
+  FiEye,
+  FiGrid,
+  FiList,
+  FiLoader,
   FiMail,
   FiMoreVertical,
-  FiEye,
-  FiLoader,
+  FiPlus,
   FiRefreshCw,
+  FiSearch,
   FiTrash2,
-  FiList,
-  FiGrid,
 } from "react-icons/fi";
 import { FaBuilding } from "react-icons/fa";
-import {
-  PageHeader,
-  HeaderContent,
-  PageTitle,
-  PageDescription,
-  HeaderActions,
-  StatsGrid,
-  StatCard,
-  StatValue,
-  StatLabel,
-  FiltersBar,
-  SearchContainer,
-  SearchIcon,
-  SearchInput,
-  FilterSelect,
-  ViewToggle,
-  ViewButton,
-  LoadingContainer,
-  ErrorContainer,
-  ClientGrid,
-  ClientCard,
-  ClientHeader,
-  ClientAvatar,
-  ClientInfo,
-  ClientName,
-  ClientContact,
-  ClientEmail,
-  ClientStats,
-  ClientStatItem,
-  ClientStatValue,
-  ClientStatLabel,
-  ClientActions,
-  ActionButtons,
-  ActionButton,
-  DropdownContainer,
-  DropdownMenu,
-  DropdownItem,
-  PaginationContainer,
-  PaginationInfo,
-  PaginationButtons,
-} from "./clients.style";
-import { formatCurrency, getInitials } from "@/lib/utils";
+
+const STATUS_BADGES = {
+  active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200",
+  inactive: "bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-200",
+};
 
 /**
- * Interactive client list UI. Receives initial SSR data and
- * continues hydration with client-side interactivity (modals, toasts, actions).
+ * Pill-styled status indicator used in table and card views.
+ * @param {{ status: string }} props
+ * @returns {JSX.Element}
+ */
+function StatusPill({ status }) {
+  const tone = status === "active" ? STATUS_BADGES.active : STATUS_BADGES.inactive;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium capitalize",
+        tone,
+      )}
+    >
+      {status}
+    </span>
+  );
+}
+
+/**
+ * Icon-only button used for compact actions.
+ * @param {Object} props - Component props.
+ * @param {React.ReactNode} props.children - Icon node.
+ * @param {boolean} [props.active] - Whether the button is in an active state.
+ * @param {string} [props.className] - Additional class names.
+ * @returns {JSX.Element}
+ */
+function IconButton({ children, active = false, className, ...rest }) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-muted transition hover:bg-surface-hover hover:text-foreground",
+        active && "bg-surface-hover text-foreground",
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Clients page interactive UI. Accepts server-rendered data and continues
+ * hydration with client-side fetching, modals, and inline actions.
  *
- * @param {Object} props - Component props
- * @param {Array<Object>} props.initialClients - Pre-fetched client rows with stats
- * @param {Object} props.initialPagination - Pagination info for the list
- * @param {Object} props.initialStats - Summary stats for the header cards
- * @param {number} [props.initialPage=1] - Initial page
- * @param {number} [props.initialLimit=10] - Initial page size
- * @param {string} [props.initialSearch=""] - Initial search term
- * @param {string} [props.initialStatus="all"] - Initial status filter
+ * @param {Object} props - Component props.
+ * @param {Array<Object>} props.initialClients - Prefetched client records.
+ * @param {Object} props.initialPagination - Pagination metadata.
+ * @param {Object} props.initialStats - Header stat payload.
+ * @param {number} [props.initialPage=1] - Seed page.
+ * @param {number} [props.initialLimit=10] - Seed limit.
+ * @param {string} [props.initialSearch=""] - Seed search term.
+ * @param {string} [props.initialStatus="all"] - Seed status filter.
  * @returns {JSX.Element}
  */
 export default function ClientsPageClient({
@@ -114,7 +106,6 @@ export default function ClientsPageClient({
   const { user } = useUser();
   const { notifySuccess, notifyError } = useToastNotifications();
 
-  // Local state seeded from SSR
   const [clients, setClients] = useState(initialClients || []);
   const [stats, setStats] = useState(
     initialStats || {
@@ -122,7 +113,7 @@ export default function ClientsPageClient({
       activeClients: 0,
       totalRevenue: 0,
       newClientsThisMonth: 0,
-    }
+    },
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -138,38 +129,30 @@ export default function ClientsPageClient({
       totalPages: 0,
       hasNext: false,
       hasPrev: false,
-    }
+    },
   );
 
-  // Modal states
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingClient, setDeletingClient] = useState(null);
-  // Track which client's action dropdown is open (by id)
   const [openDropdownId, setOpenDropdownId] = useState(null);
-
-  // Prevent double-fetch on first paint (SSR already provided data)
   const [skipInitialFetch, setSkipInitialFetch] = useState(true);
 
   /**
-   * Fetches clients from API.
-   * @param {string} userId - Clerk user id
-   * @param {number} page - page number
-   * @param {number} limit - items per page
-   * @param {string} search - search term
-   * @param {string} status - status filter
-   * @returns {Promise<Object>} Response JSON
+   * Fetches clients from the API with current filters.
+   * @param {string} userId - Clerk user identifier.
+   * @param {number} page - Page number.
+   * @param {number} limit - Page size.
+   * @param {string} search - Search query.
+   * @param {string} status - Status filter.
+   * @returns {Promise<any>}
    */
   async function fetchClients(userId, page = 1, limit = 10, search = "", status = "all") {
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(limit),
-    });
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search) params.append("search", search);
     if (status !== "all") params.append("status", status);
-    // userId is not required by the API (auth() is used), but harmless if passed
     if (userId) params.append("userId", userId);
 
     const response = await fetch(`/api/clients?${params.toString()}`);
@@ -180,11 +163,6 @@ export default function ClientsPageClient({
     return response.json();
   }
 
-  /**
-   * Fetch header stats.
-   * @param {string} userId - Clerk user id
-   * @returns {Promise<Object>}
-   */
   async function fetchClientStats(userId) {
     const response = await fetch(`/api/clients/stats${userId ? `?userId=${userId}` : ""}`);
     if (!response.ok) {
@@ -239,7 +217,7 @@ export default function ClientsPageClient({
         pagination.page,
         pagination.limit,
         searchTerm,
-        statusFilter
+        statusFilter,
       );
       setClients(data.clients);
       setPagination(data.pagination);
@@ -253,10 +231,10 @@ export default function ClientsPageClient({
   async function loadStats() {
     if (!user?.id) return;
     try {
-      const s = await fetchClientStats(user.id);
-      setStats(s);
+      const newStats = await fetchClientStats(user.id);
+      setStats(newStats);
     } catch {
-      // ignore
+      // ignore stats fetch failure
     }
   }
 
@@ -264,38 +242,29 @@ export default function ClientsPageClient({
     await Promise.all([loadClients(), loadStats()]);
   }
 
-  // Hydration effect: skip first fetch because SSR already provided data
-  useEffect(function onMount() {
+  useEffect(() => {
     setSkipInitialFetch(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Data fetching effects
-  useEffect(
-    function onParamsChange() {
-      if (skipInitialFetch) return;
-      if (user?.id) {
-        loadInitialData();
-      }
-    },
+  useEffect(() => {
+    if (skipInitialFetch) return;
+    if (user?.id) {
+      loadInitialData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user?.id, pagination.page, searchTerm, statusFilter]
-  );
+  }, [user?.id, pagination.page, statusFilter]);
 
-  useEffect(
-    function onSearchDebounce() {
-      const debounced = setTimeout(() => {
-        if (pagination.page !== 1) {
-          setPagination((prev) => ({ ...prev, page: 1 }));
-        } else if (!skipInitialFetch) {
-          loadClients();
-        }
-      }, 300);
-      return () => clearTimeout(debounced);
-    },
+  useEffect(() => {
+    const debounced = setTimeout(() => {
+      if (pagination.page !== 1) {
+        setPagination((prev) => ({ ...prev, page: 1 }));
+      } else if (!skipInitialFetch) {
+        loadClients();
+      }
+    }, 300);
+    return () => clearTimeout(debounced);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [searchTerm]
-  );
+  }, [searchTerm]);
 
   function handleRefresh() {
     setRefreshing(true);
@@ -321,12 +290,12 @@ export default function ClientsPageClient({
     })();
   }
 
-  function handleSearchChange(e) {
-    setSearchTerm(e.target.value);
+  function handleSearchChange(event) {
+    setSearchTerm(event.target.value);
   }
 
-  function handleStatusFilterChange(e) {
-    setStatusFilter(e.target.value);
+  function handleStatusFilterChange(event) {
+    setStatusFilter(event.target.value);
     setPagination((prev) => ({ ...prev, page: 1 }));
   }
 
@@ -366,7 +335,7 @@ export default function ClientsPageClient({
 
   async function handleCreateClient(clientData) {
     try {
-      const created = await createClient(clientData);
+      await createClient(clientData);
       setShowCreateForm(false);
       notifySuccess("Client created");
       await loadClients();
@@ -390,25 +359,28 @@ export default function ClientsPageClient({
     }
   }
 
-  const statsData = [
-    { label: "Total Clients", value: String(stats.totalClients || 0) },
-    { label: "Active Clients", value: String(stats.activeClients || 0) },
-    { label: "Revenue (Total)", value: formatCurrency(stats.totalRevenue || 0) },
-    { label: "New This Month", value: String(stats.newClientsThisMonth || 0) },
-  ];
+  const statsCards = useMemo(
+    () => [
+      { label: "Total Clients", value: String(stats.totalClients || 0) },
+      { label: "Active Clients", value: String(stats.activeClients || 0) },
+      { label: "Revenue (Total)", value: formatCurrency(stats.totalRevenue || 0) },
+      { label: "New This Month", value: String(stats.newClientsThisMonth || 0) },
+    ],
+    [stats],
+  );
 
   /**
-   * Renders per-row action controls with an overflow dropdown.
-   * Ensures only the clicked row opens and closes on outside click.
+   * Overflow actions per client row/card.
    * @param {{ client: any }} props
+   * @returns {JSX.Element}
    */
   function ActionButtonsComponent({ client }) {
     const menuRef = useRef(null);
 
-    useEffect(function bindOutsideClick() {
-      function onDocClick(e) {
+    useEffect(() => {
+      function onDocClick(event) {
         if (openDropdownId !== client.id) return;
-        if (menuRef.current && !menuRef.current.contains(e.target)) {
+        if (menuRef.current && !menuRef.current.contains(event.target)) {
           setOpenDropdownId(null);
         }
       }
@@ -420,283 +392,339 @@ export default function ClientsPageClient({
       };
     }, [openDropdownId, client.id]);
 
+    const isMenuOpen = openDropdownId === client.id;
+
     return (
-      <ActionButtons>
-        <ActionButton
-          variant="outline"
-          size="sm"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
+      <div className="relative flex items-center gap-2" ref={menuRef}>
+        <IconButton
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
             handleEditClient(client);
           }}
+          aria-label="Edit client"
         >
-          <FiEdit />
-        </ActionButton>
+          <FiEdit className="h-4 w-4" aria-hidden="true" />
+        </IconButton>
 
-        <DropdownContainer ref={menuRef} $isopen={openDropdownId === client.id}>
-          <ActionButton
-            $isopen={openDropdownId === client.id}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
+        <div className="relative">
+          <IconButton
+            active={isMenuOpen}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
               setOpenDropdownId((prev) => (prev === client.id ? null : client.id));
             }}
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+            aria-label="More actions"
           >
-            <FiMoreVertical />
-          </ActionButton>
-          <DropdownMenu $isopen={openDropdownId === client.id}>
-            <DropdownItem
-              className="danger"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteClick(client);
-              }}
-            >
-              <FiTrash2 />
-              Delete Client
-            </DropdownItem>
-          </DropdownMenu>
-        </DropdownContainer>
-      </ActionButtons>
+            <FiMoreVertical className="h-4 w-4" aria-hidden="true" />
+          </IconButton>
+
+          {isMenuOpen ? (
+            <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleDeleteClick(client);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-sm font-medium text-red-500 transition hover:bg-red-500/10"
+              >
+                <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+                Delete Client
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
     );
   }
 
   if (loading && clients.length === 0) {
     return (
-      <LoadingContainer>
-        <FiLoader className="animate-spin" size={24} />
+      <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-surface p-10 text-sm text-muted">
+        <FiLoader className="h-6 w-6 animate-spin" aria-hidden="true" />
         Loading clients...
-      </LoadingContainer>
+      </div>
     );
   }
 
   return (
-    <div>
-      <PageHeader>
-        <HeaderContent>
-          <PageTitle>Clients</PageTitle>
-          <PageDescription>
-            Manage your client relationships and track project collaboration
-          </PageDescription>
-        </HeaderContent>
-        <HeaderActions>
-          <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
-            <FiRefreshCw className={refreshing ? "animate-spin" : ""} />
-            {refreshing ? "Refreshing..." : "Refresh"}
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Clients</h1>
+          <p className="text-sm text-muted">
+            Manage your client relationships and track project collaboration.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="secondary"
+            className={cn("gap-2", refreshing && "opacity-70")}
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <FiRefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} aria-hidden="true" />
+            {refreshing ? "Refreshing" : "Refresh"}
           </Button>
-          <Button variant="outline" onClick={handleBackfillClients}>
+          <Button variant="secondary" className="gap-2" onClick={handleBackfillClients}>
             Sync Clients
           </Button>
-          <Button variant="outline">
-            <FiDownload />
+          <Button variant="secondary" className="gap-2">
+            <FiDownload className="h-4 w-4" aria-hidden="true" />
             Export
           </Button>
-          <Button onClick={handleAddClientClick}>
-            <FiPlus />
+          <Button className="gap-2" onClick={handleAddClientClick}>
+            <FiPlus className="h-4 w-4" aria-hidden="true" />
             Add Client
           </Button>
-        </HeaderActions>
-      </PageHeader>
+        </div>
+      </div>
 
-      {error && (
-        <ErrorContainer>
+      {error ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-red-400 bg-red-500/10 px-4 py-3 text-sm text-red-600 sm:flex-row sm:items-center sm:justify-between">
           <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
+          <Button variant="secondary" className="gap-2" onClick={handleRefresh}>
             Retry
           </Button>
-        </ErrorContainer>
-      )}
+        </div>
+      ) : null}
 
-      <StatsGrid>
-        {statsData.map((stat, index) => (
-          <StatCard key={index}>
-            <CardContent>
-              <StatValue>{stat.value}</StatValue>
-              <StatLabel>{stat.label}</StatLabel>
-            </CardContent>
-          </StatCard>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {statsCards.map((stat) => (
+          <div key={stat.label} className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+            <p className="text-2xl font-semibold text-foreground">{stat.value}</p>
+            <p className="mt-1 text-sm text-muted">{stat.label}</p>
+          </div>
         ))}
-      </StatsGrid>
+      </div>
 
-      <FiltersBar>
-        <SearchContainer>
-          <SearchIcon />
-          <SearchInput
-            placeholder="Search clients..."
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-sm">
+          <FiSearch
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
             value={searchTerm}
             onChange={handleSearchChange}
+            placeholder="Search clients..."
+            className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
           />
-        </SearchContainer>
-        <FilterSelect value={statusFilter} onChange={handleStatusFilterChange}>
+        </div>
+        <select
+          value={statusFilter}
+          onChange={handleStatusFilterChange}
+          className="h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring sm:w-48"
+        >
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-        </FilterSelect>
-      </FiltersBar>
+        </select>
+      </div>
 
-      <ViewToggle>
-        <ViewButton $isactive={viewMode === "table"} onClick={() => setViewMode("table")} type="button">
-          <FiList />
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setViewMode("table")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition",
+            viewMode === "table"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-primary text-primary hover:bg-primary/10",
+          )}
+        >
+          <FiList className="h-4 w-4" aria-hidden="true" />
           Table View
-        </ViewButton>
-        <ViewButton $isactive={viewMode === "grid"} onClick={() => setViewMode("grid")} type="button">
-          <FiGrid />
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("grid")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition",
+            viewMode === "grid"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-primary text-primary hover:bg-primary/10",
+          )}
+        >
+          <FiGrid className="h-4 w-4" aria-hidden="true" />
           Grid View
-        </ViewButton>
-      </ViewToggle>
+        </button>
+      </div>
 
       {clients.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState>
-              <EmptyStateIcon>
-                <FiEye />
-              </EmptyStateIcon>
-              <EmptyStateTitle>No clients found</EmptyStateTitle>
-              <EmptyStateDescription>
-                {searchTerm || statusFilter !== "all"
-                  ? "Try adjusting your search or filter criteria"
-                  : "Get started by adding your first client"}
-              </EmptyStateDescription>
-              <Button style={{ marginTop: "16px" }} onClick={() => setShowCreateForm(true)}>
-                <FiPlus />
-                Add Your First Client
-              </Button>
-            </EmptyState>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-border bg-surface p-12 text-center shadow-sm">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <FiEye className="h-8 w-8" aria-hidden="true" />
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-foreground">No clients found</h2>
+          <p className="mt-2 text-sm text-muted">
+            {searchTerm || statusFilter !== "all"
+              ? "Try adjusting your search or filter criteria."
+              : "Get started by adding your first client."}
+          </p>
+          <Button className="mt-4 gap-2" onClick={() => setShowCreateForm(true)}>
+            <FiPlus className="h-4 w-4" aria-hidden="true" />
+            Add Your First Client
+          </Button>
+        </div>
       ) : viewMode === "grid" ? (
         <>
-          <ClientGrid>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {clients.map((client) => (
-              <ClientCard key={client.id}>
-                <CardContent>
-                  <ClientHeader>
-                    <a href={`/admin/clients/${client.id}`} aria-label={`View ${client.companyName}`}>
-                      <ClientAvatar>{getInitials(client.companyName)}</ClientAvatar>
-                    </a>
-                    <ClientInfo>
-                      <ClientName>{client.companyName}</ClientName>
-                      <ClientContact>
-                        <FaBuilding />
-                        {client.contactName}
-                      </ClientContact>
-                      <ClientEmail>
-                        <FiMail />
-                        {client.contactEmail}
-                      </ClientEmail>
-                    </ClientInfo>
-                    <StatusDot status={client.status} />
-                  </ClientHeader>
+              <div key={client.id} className="flex h-full flex-col rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                <div className="flex items-start gap-4">
+                  <Link
+                    href={`/admin/clients/${client.id}`}
+                    className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-lg font-semibold text-primary"
+                    aria-label={`View ${client.companyName}`}
+                  >
+                    {getInitials(client.companyName)}
+                  </Link>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-foreground">{client.companyName}</p>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-muted">
+                      <FaBuilding className="h-3 w-3" aria-hidden="true" />
+                      {client.contactName}
+                    </p>
+                    <p className="mt-1 flex items-center gap-1 text-xs text-muted">
+                      <FiMail className="h-3 w-3" aria-hidden="true" />
+                      {client.contactEmail}
+                    </p>
+                  </div>
+                  <StatusPill status={client.status} />
+                </div>
 
-                  <ClientStats>
-                    <ClientStatItem>
-                      <ClientStatValue>{client.projects?.length || 0}</ClientStatValue>
-                      <ClientStatLabel>Total Projects</ClientStatLabel>
-                    </ClientStatItem>
-                    <ClientStatItem>
-                      <ClientStatValue>{client.activeProjects || 0}</ClientStatValue>
-                      <ClientStatLabel>Active</ClientStatLabel>
-                    </ClientStatItem>
-                    <ClientStatItem>
-                      <ClientStatValue>{formatCurrency(client.totalRevenue || 0)}</ClientStatValue>
-                      <ClientStatLabel>Revenue</ClientStatLabel>
-                    </ClientStatItem>
-                  </ClientStats>
+                <div className="mt-4 grid grid-cols-3 gap-3 rounded-xl bg-background px-3 py-3 text-center text-sm">
+                  <div>
+                    <p className="font-semibold text-foreground">{client.projects?.length || 0}</p>
+                    <p className="text-xs text-muted">Total Projects</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{client.activeProjects || 0}</p>
+                    <p className="text-xs text-muted">Active</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{formatCurrency(client.totalRevenue || 0)}</p>
+                    <p className="text-xs text-muted">Revenue</p>
+                  </div>
+                </div>
 
-                  <ClientActions>
-                    <div>
-                      <Badge variant={client.status === "active" ? "success" : "secondary"}>
-                        {client.status === "active" ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                    <ActionButtonsComponent client={client} />
-                  </ClientActions>
-                </CardContent>
-              </ClientCard>
+                <div className="mt-4 flex items-center justify-between">
+                  <StatusPill status={client.status} />
+                  <ActionButtonsComponent client={client} />
+                </div>
+              </div>
             ))}
-          </ClientGrid>
+          </div>
 
-          <PaginationContainer>
-            <PaginationInfo>
+          <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted sm:flex-row">
+            <span>
               Page {pagination.page} of {pagination.totalPages} · {pagination.totalCount} total
-            </PaginationInfo>
-            <PaginationButtons>
-              <Button variant="outline" disabled={!pagination.hasPrev} onClick={() => handlePageChange(pagination.page - 1)}>
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                className="gap-2"
+                disabled={!pagination.hasPrev}
+                onClick={() => handlePageChange(pagination.page - 1)}
+              >
                 Previous
               </Button>
-              <Button variant="outline" disabled={!pagination.hasNext} onClick={() => handlePageChange(pagination.page + 1)}>
+              <Button
+                variant="secondary"
+                className="gap-2"
+                disabled={!pagination.hasNext}
+                onClick={() => handlePageChange(pagination.page + 1)}
+              >
                 Next
               </Button>
-            </PaginationButtons>
-          </PaginationContainer>
+            </div>
+          </div>
         </>
       ) : (
         <>
-          <Card>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Projects</TableHead>
-                    <TableHead>Revenue</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <tbody>
+          <div className="rounded-2xl border border-border bg-surface shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-border text-sm">
+                <thead className="bg-background text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                  <tr>
+                    <th className="px-4 py-3">Client</th>
+                    <th className="px-4 py-3">Contact</th>
+                    <th className="px-4 py-3">Projects</th>
+                    <th className="px-4 py-3">Revenue</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
                   {clients.map((client) => (
-                    <TableRow key={client.id}>
-                      <TableCell>
-                        <a href={`/admin/clients/${client.id}`} aria-label={`View ${client.companyName}`}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                            <ClientAvatar>{getInitials(client.companyName)}</ClientAvatar>
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{client.companyName}</div>
-                              <div style={{ color: "#64748b", fontSize: "0.875rem" }}>{client.website || "—"}</div>
-                            </div>
-                          </div>
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          <div>{client.contactName}</div>
-                          <div style={{ color: "#64748b", fontSize: "0.875rem" }}>{client.contactEmail}</div>
+                    <tr key={client.id} className="hover:bg-surface-hover/60">
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/admin/clients/${client.id}`}
+                          className="flex items-center gap-3"
+                          aria-label={`View ${client.companyName}`}
+                        >
+                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
+                            {getInitials(client.companyName)}
+                          </span>
+                          <span>
+                            <span className="block font-semibold text-foreground">{client.companyName}</span>
+                            <span className="block text-xs text-muted">{client.website || "—"}</span>
+                          </span>
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-1 text-sm text-muted">
+                          <span className="block text-foreground">{client.contactName}</span>
+                          <span className="block">{client.contactEmail}</span>
                         </div>
-                      </TableCell>
-                      <TableCell>{client.projects?.length || 0}</TableCell>
-                      <TableCell>{formatCurrency(client.totalRevenue || 0)}</TableCell>
-                      <TableCell>
-                        <Badge variant={client.status === "active" ? "success" : "secondary"}>
-                          {client.status === "active" ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-foreground">{client.projects?.length || 0}</td>
+                      <td className="px-4 py-3 text-sm text-foreground">
+                        {formatCurrency(client.totalRevenue || 0)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-foreground">
+                        <StatusPill status={client.status} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
                         <ActionButtonsComponent client={client} />
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
                 </tbody>
-              </Table>
-            </CardContent>
-          </Card>
+              </table>
+            </div>
+          </div>
 
-          <PaginationContainer>
-            <PaginationInfo>
+          <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted sm:flex-row">
+            <span>
               Page {pagination.page} of {pagination.totalPages} · {pagination.totalCount} total
-            </PaginationInfo>
-            <PaginationButtons>
-              <Button variant="outline" disabled={!pagination.hasPrev} onClick={() => handlePageChange(pagination.page - 1)}>
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                className="gap-2"
+                disabled={!pagination.hasPrev}
+                onClick={() => handlePageChange(pagination.page - 1)}
+              >
                 Previous
               </Button>
-              <Button variant="outline" disabled={!pagination.hasNext} onClick={() => handlePageChange(pagination.page + 1)}>
+              <Button
+                variant="secondary"
+                className="gap-2"
+                disabled={!pagination.hasNext}
+                onClick={() => handlePageChange(pagination.page + 1)}
+              >
                 Next
               </Button>
-            </PaginationButtons>
-          </PaginationContainer>
+            </div>
+          </div>
         </>
       )}
 
@@ -708,7 +736,7 @@ export default function ClientsPageClient({
         submitText="Create Client"
       />
 
-      {showEditForm && (
+      {showEditForm ? (
         <CreateClientForm
           isOpen={showEditForm}
           onClose={() => setShowEditForm(false)}
@@ -717,7 +745,7 @@ export default function ClientsPageClient({
           title="Edit Client"
           submitText="Update Client"
         />
-      )}
+      ) : null}
 
       <ConfirmationDialog
         isOpen={showDeleteConfirm}

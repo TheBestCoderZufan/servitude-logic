@@ -4,7 +4,7 @@
 /**
  * @module providers/ThemeProvider
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
 import { ThemeProvider as StyledThemeProvider } from "styled-components";
@@ -24,19 +24,29 @@ const LIGHT_FG = "#1e293b";
  * @param {Object} props - Component props.
  * @param {React.ReactNode} props.children - Descendant nodes.
  * @param {boolean} props.scoped - Whether the current route is eligible for dark mode.
+ * @param {"light"|"dark"} props.initialMode - Server-derived initial color mode.
  * @returns {JSX.Element}
  */
-function ThemeBridge({ children, scoped }) {
+function ThemeBridge({ children, scoped, initialMode }) {
   const { resolvedTheme, setTheme, theme: preference = "system" } = useTheme();
-  const effectiveMode = scoped ? (resolvedTheme === "dark" ? "dark" : "light") : "light";
+  const [mode, setMode] = useState(() => (scoped ? initialMode : "light"));
 
-  const styledTheme = useMemo(() => (effectiveMode === "dark" ? darkTheme : lightTheme), [effectiveMode]);
+  useEffect(() => {
+    const nextMode = scoped ? (resolvedTheme === "dark" ? "dark" : "light") : "light";
+    setMode(nextMode);
+  }, [resolvedTheme, scoped]);
+
+  const styledTheme = useMemo(
+    () => (mode === "dark" ? darkTheme : lightTheme),
+    [mode],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
-    window.__themeMode = effectiveMode;
+
+    window.__themeMode = mode;
     window.__themePreference = preference;
     window.__setThemePreference = (next) => {
       if (!VALID_PREFERENCES.has(next)) {
@@ -48,33 +58,38 @@ function ThemeBridge({ children, scoped }) {
       } catch (_) {}
       setTheme(next);
     };
+
     try {
-      window.dispatchEvent(new CustomEvent("theme-mode", { detail: effectiveMode }));
+      window.dispatchEvent(new CustomEvent("theme-mode", { detail: mode }));
     } catch (_) {}
+
     return () => {
       try {
         delete window.__setThemePreference;
       } catch (_) {}
     };
-  }, [effectiveMode, preference, setTheme]);
+  }, [mode, preference, setTheme]);
 
   useEffect(() => {
     if (typeof document === "undefined") {
       return;
     }
-    const bg = effectiveMode === "dark" ? DARK_BG : LIGHT_BG;
-    const fg = effectiveMode === "dark" ? DARK_FG : LIGHT_FG;
+
+    const bg = mode === "dark" ? DARK_BG : LIGHT_BG;
+    const fg = mode === "dark" ? DARK_FG : LIGHT_FG;
     document.documentElement.style.backgroundColor = bg;
+
     const body = document.body;
     if (body) {
       body.style.backgroundColor = bg;
       body.style.color = fg;
     }
+
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
       meta.setAttribute("content", bg);
     }
-  }, [effectiveMode]);
+  }, [mode]);
 
   return <StyledThemeProvider theme={styledTheme}>{children}</StyledThemeProvider>;
 }
@@ -86,23 +101,35 @@ function ThemeBridge({ children, scoped }) {
  *
  * @param {Object} props - Component props.
  * @param {React.ReactNode} props.children - Descendant content.
+ * @param {"light"|"dark"|"system"} [props.initialPreference="system"] - Preference from request cookies.
+ * @param {"light"|"dark"} [props.initialMode="light"] - Initial resolved mode from the server.
  * @returns {JSX.Element}
  */
-export default function ThemeProvider({ children }) {
+export default function ThemeProvider({
+  children,
+  initialPreference = "system",
+  initialMode = "light",
+}) {
   const pathname = usePathname();
   const scoped = pathname?.startsWith("/admin") || pathname?.startsWith("/dashboard");
+  const defaultTheme = scoped ? initialPreference : "light";
+  const normalizedDefault = VALID_PREFERENCES.has(defaultTheme)
+    ? defaultTheme
+    : "system";
 
   return (
     <NextThemesProvider
       attribute="data-mode"
-      defaultTheme="system"
+      defaultTheme={normalizedDefault}
       enableSystem
       forcedTheme={scoped ? undefined : "light"}
       storageKey="servitude-logic-theme"
       disableTransitionOnChange
-      value={{ light: "light", dark: "dark" }}
+      value={{ light: "light", dark: "dark", system: "system" }}
     >
-      <ThemeBridge scoped={Boolean(scoped)}>{children}</ThemeBridge>
+      <ThemeBridge scoped={Boolean(scoped)} initialMode={scoped ? initialMode : "light"}>
+        {children}
+      </ThemeBridge>
     </NextThemesProvider>
   );
 }

@@ -1,9 +1,9 @@
 // src/app/admin/projects/ProjectsPageClient.jsx
 /** @module admin/projects/ProjectsPageClient */
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import { Button, Badge, Avatar } from "@/components/ui";
+import Button from "@/components/ui/shadcn/Button";
 import { useToastNotifications } from "@/components/ui/Toast";
 import {
   DashboardStatsSkeleton,
@@ -18,48 +18,7 @@ import {
   statusOption,
   priorityOption,
 } from "@/data/page/admin/adminData";
-import {
-  PageHeader,
-  HeaderContent,
-  PageTitle,
-  PageDescription,
-  StatsGrid,
-  StatContent,
-  StatInfo,
-  StatValue,
-  StatLabel,
-  StatChange,
-  StatIcon,
-  FiltersBar,
-  SearchContainer,
-  SearchInput,
-  FilterSelect,
-  ViewToggle,
-  ProjectsGrid,
-  ProjectHeader,
-  ProjectName,
-  ProjectMeta,
-  MetaRow,
-  ProgressSection,
-  ProgressHeader,
-  ProgressLabel,
-  ProgressValue,
-  ProgressBar,
-  ProgressFill,
-  ProjectFooter,
-  TeamAvatars,
-  MoreTeamMembers,
-  ActionButtons,
-  ActionButton,
-  EmptyState,
-  PaginationContainer,
-  PaginationInfo,
-  PaginationButtons,
-  StatCard,
-  SearchIcon,
-  ViewButton,
-  ProjectCard,
-} from "./style";
+import { cn } from "@/lib/utils/cn";
 import {
   FiFolder,
   FiPlus,
@@ -72,6 +31,7 @@ import {
   FiMoreVertical,
   FiEdit,
   FiEye,
+  FiSearch,
 } from "react-icons/fi";
 
 /**
@@ -100,7 +60,6 @@ export default function ProjectsPageClient({
   initialLimit = 12,
 }) {
   useBlockClientRole();
-  const { user } = useUser();
   const { notifyError } = useToastNotifications();
 
   const [projects, setProjects] = useState(initialProjects || []);
@@ -188,7 +147,8 @@ export default function ProjectsPageClient({
   useEffect(() => {
     if (skipInitialFetch) return;
     loadStats();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [skipInitialFetch]);
 
   function handleSearchChange(e) {
     setSearchTerm(e.target.value);
@@ -211,42 +171,65 @@ export default function ProjectsPageClient({
     const showCount = Math.min(teamMembers.length, maxShow);
     const remainingCount = teamMembers.length - maxShow;
     return (
-      <TeamAvatars>
+      <div className="flex items-center -space-x-2">
         {teamMembers.slice(0, showCount).map((member, index) => (
-          <Avatar key={member.clerkId || index} size="32">
+          <span
+            key={member.clerkId || index}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+          >
             {getInitials(member.name || member.email)}
-          </Avatar>
+          </span>
         ))}
-        {remainingCount > 0 && (
-          <MoreTeamMembers>+{remainingCount}</MoreTeamMembers>
-        )}
-      </TeamAvatars>
+        {remainingCount > 0 ? (
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/10 text-xs font-semibold text-foreground">
+            +{remainingCount}
+          </span>
+        ) : null}
+      </div>
     );
   }
 
-  function renderStatsCards() {
+  const statsCards = useMemo(() => {
+    if (!stats) return [];
+    return statsConfig.map((stat) => ({
+      label: stat.label,
+      value: stat.value(stats),
+      change: stat.change(stats),
+      isPositive: stat.isPositive(stats),
+      color: stat.color,
+      Icon: stat.icon,
+    }));
+  }, [stats]);
+
+  function renderStatsSection() {
     if (statsLoading) return <DashboardStatsSkeleton />;
-    if (!stats) return null;
+    if (!statsCards.length) return null;
     return (
-      <StatsGrid>
-        {statsConfig.map((stat, index) => (
-          <StatCard key={index}>
-            <StatContent>
-              <StatInfo>
-                <StatValue>{stat.value(stats)}</StatValue>
-                <StatLabel>{stat.label}</StatLabel>
-                <StatChange $ispositive={stat.isPositive(stats)}>
-                  <FiTrendingUp size={16} />
-                  {stat.change(stats)}
-                </StatChange>
-              </StatInfo>
-              <StatIcon color={stat.color}>
-                <stat.icon />
-              </StatIcon>
-            </StatContent>
-          </StatCard>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {statsCards.map((card) => (
+          <div key={card.label} className="flex h-full items-center justify-between rounded-2xl border border-border bg-surface p-5 shadow-sm">
+            <div>
+              <p className="text-2xl font-semibold text-foreground">{card.value}</p>
+              <p className="mt-1 text-sm text-muted">{card.label}</p>
+              <p
+                className={cn(
+                  "mt-3 inline-flex items-center gap-1 text-xs font-semibold",
+                  card.isPositive ? "text-emerald-500" : "text-red-500",
+                )}
+              >
+                <FiTrendingUp className="h-4 w-4" aria-hidden="true" />
+                {card.change}
+              </p>
+            </div>
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl text-white"
+              style={{ backgroundColor: card.color }}
+            >
+              <card.Icon className="h-5 w-5" aria-hidden="true" />
+            </div>
+          </div>
         ))}
-      </StatsGrid>
+      </div>
     );
   }
 
@@ -255,175 +238,247 @@ export default function ProjectsPageClient({
       return (
         <GridLoading
           CardComponent={ProjectCardSkeleton}
-          columns="repeat(auto-fill, minmax(350px, 1fr))"
+          columns="repeat(auto-fill, minmax(340px, 1fr))"
           count={6}
         />
       );
     }
+
     if (projects.length === 0) {
       return (
-        <EmptyState>
-          <FiFolder size={48} />
-          <h3>No projects found</h3>
-          <p>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-surface p-12 text-center shadow-sm">
+          <FiFolder className="h-12 w-12 text-muted" aria-hidden="true" />
+          <h3 className="mt-4 text-lg font-semibold text-foreground">No projects found</h3>
+          <p className="mt-2 text-sm text-muted">
             {searchTerm || statusFilter !== "all" || priorityFilter !== "all"
               ? "Try adjusting your filters or search terms."
               : "Get started by creating your first project."}
           </p>
-          <Button style={{ marginTop: 16 }}>
-            <FiPlus />
+          <Button className="mt-4 gap-2">
+            <FiPlus className="h-4 w-4" aria-hidden="true" />
             Create Project
           </Button>
-        </EmptyState>
+        </div>
       );
     }
+
     return (
-      <ProjectsGrid>
-        {projects.map((project) => (
-          <ProjectCard key={project.id}>
-            <ProjectHeader>
-              <ProjectName>{project.name}</ProjectName>
-              <ActionButton variant="ghost" size="sm">
-                <FiMoreVertical />
-              </ActionButton>
-            </ProjectHeader>
+      <div className={cn(viewMode === "grid" ? "grid gap-4 sm:grid-cols-2 xl:grid-cols-3" : "space-y-4") }>
+        {projects.map((project) => {
+          const badgeVariant = getStatusVariant[project.status?.toUpperCase()] || "default";
+          const badgeClasses =
+            badgeVariant === "completed"
+              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-200"
+              : badgeVariant === "inProgress"
+              ? "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-200"
+              : badgeVariant === "planning"
+              ? "bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:text-purple-200"
+              : badgeVariant === "onHold"
+              ? "bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-200"
+              : badgeVariant === "cancelled"
+              ? "bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-200"
+              : "bg-slate-100 text-slate-700 dark:bg-slate-500/10 dark:text-slate-200";
 
-            <ProjectMeta>
-              <MetaRow>
-                <FiUsers size={16} />
-                <span>{project.client?.companyName || "No client"}</span>
-              </MetaRow>
-              <MetaRow>
-                <FiCalendar size={16} />
-                <span>
-                  {project.startDate ? formatDate(project.startDate) : "No start date"} -
-                  {project.endDate ? formatDate(project.endDate) : "No end date"}
-                </span>
-              </MetaRow>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <Badge variant={getStatusVariant[project.status?.toUpperCase()] || "default"}>
-                  {project.status?.replace("_", " ") || "Unknown"}
-                </Badge>
+          return viewMode === "grid" ? (
+            <div key={project.id} className="flex h-full flex-col rounded-2xl border border-border bg-surface p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-lg font-semibold text-foreground">{project.name}</p>
+                  <p className="mt-1 flex items-center gap-1 text-sm text-muted">
+                    <FiUsers className="h-4 w-4" aria-hidden="true" />
+                    {project.client?.companyName || "No client"}
+                  </p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-muted">
+                    <FiCalendar className="h-3 w-3" aria-hidden="true" />
+                    {project.startDate ? formatDate(project.startDate) : "No start"} –
+                    {project.endDate ? formatDate(project.endDate) : "No end"}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border text-muted hover:bg-surface-hover"
+                  aria-label="Project actions"
+                >
+                  <FiMoreVertical className="h-4 w-4" aria-hidden="true" />
+                </button>
               </div>
-            </ProjectMeta>
 
-            <ProgressSection>
-              <ProgressHeader>
-                <ProgressLabel>Progress</ProgressLabel>
-                <ProgressValue>{project.progress || 0}%</ProgressValue>
-              </ProgressHeader>
-              <ProgressBar>
-                <ProgressFill progress={project.progress || 0} />
-              </ProgressBar>
-            </ProgressSection>
+              <div className="mt-3 inline-flex items-center gap-2">
+                <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium", badgeClasses)}>
+                  {project.status?.replace("_", " ") || "Unknown"}
+                </span>
+                {project.isOverdue ? (
+                  <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-600 dark:bg-red-500/10 dark:text-red-200">
+                    Overdue
+                  </span>
+                ) : null}
+              </div>
 
-            <ProjectFooter>
-              {renderTeamAvatars(project.teamMembers)}
-              <ActionButtons>
-                <ActionButton variant="outline" size="sm">
-                  <FiEye />
-                </ActionButton>
-                <ActionButton variant="outline" size="sm">
-                  <FiEdit />
-                </ActionButton>
-              </ActionButtons>
-            </ProjectFooter>
-          </ProjectCard>
-        ))}
-      </ProjectsGrid>
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-xs font-semibold text-muted">
+                  <span>Progress</span>
+                  <span className="text-foreground">{project.progress || 0}%</span>
+                </div>
+                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-surface-hover">
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${project.progress || 0}%` }}
+                    aria-hidden="true"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between">
+                {renderTeamAvatars(project.teamMembers)}
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" className="h-9 gap-2 px-3" type="button">
+                    <FiEye className="h-4 w-4" aria-hidden="true" />
+                    View
+                  </Button>
+                  <Button variant="secondary" className="h-9 gap-2 px-3" type="button">
+                    <FiEdit className="h-4 w-4" aria-hidden="true" />
+                    Edit
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div key={project.id} className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-base font-semibold text-foreground">{project.name}</p>
+                  <p className="mt-1 text-sm text-muted">{project.client?.companyName || "No client"}</p>
+                  <p className="mt-1 text-xs text-muted">
+                    {project.startDate ? formatDate(project.startDate) : "No start"} –
+                    {project.endDate ? formatDate(project.endDate) : "No end"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium", badgeClasses)}>
+                    {project.status?.replace("_", " ") || "Unknown"}
+                  </span>
+                  <span className="text-xs font-semibold text-muted">{project.progress || 0}%</span>
+                  <Button variant="secondary" className="h-8 gap-2 px-3" type="button">
+                    <FiEye className="h-4 w-4" aria-hidden="true" />
+                    View
+                  </Button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     );
   }
 
   return (
-    <div>
-        <PageHeader>
-          <HeaderContent>
-            <PageTitle>Projects</PageTitle>
-            <PageDescription>
-              Track and manage all your projects from planning to completion
-            </PageDescription>
-          </HeaderContent>
-        </PageHeader>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Projects</h1>
+          <p className="text-sm text-muted">Track and manage all your projects from planning to completion.</p>
+        </div>
+      </div>
 
-        {renderStatsCards()}
+      {renderStatsSection()}
 
-        <FiltersBar>
-          <SearchContainer>
-            <SearchIcon />
-            <SearchInput
-              placeholder="Search projects..."
-              value={searchTerm}
-              onChange={handleSearchChange}
-            />
-          </SearchContainer>
-          <FilterSelect value={statusFilter} onChange={handleStatusFilterChange}>
+      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm md:flex-row md:items-center">
+        <div className="relative w-full md:max-w-sm">
+          <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="w-full rounded-xl border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="flex flex-1 flex-wrap items-center gap-3 md:justify-end">
+          <select
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            className="h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+          >
             {statusOption.map((opt) => (
               <option key={opt.id} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-          </FilterSelect>
-          <FilterSelect value={priorityFilter} onChange={handlePriorityFilterChange}>
+          </select>
+          <select
+            value={priorityFilter}
+            onChange={handlePriorityFilterChange}
+            className="h-10 rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+          >
             {priorityOption.map((opt) => (
               <option key={opt.id} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-          </FilterSelect>
-          <Button variant="outline">
-            <FiFilter />
+          </select>
+          <Button variant="secondary" className="gap-2">
+            <FiFilter className="h-4 w-4" aria-hidden="true" />
             More Filters
           </Button>
-        </FiltersBar>
+        </div>
+      </div>
 
-        <ViewToggle>
-          <ViewButton
-            variant={viewMode === "grid" ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-            $isactive={viewMode === "grid"}
-          >
-            <FiGrid />
-            Grid View
-          </ViewButton>
-          <ViewButton
-            variant={viewMode === "table" ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            $isactive={viewMode === "table"}
-          >
-            <FiList />
-            Table View
-          </ViewButton>
-        </ViewToggle>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setViewMode("grid")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition",
+            viewMode === "grid"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-primary text-primary hover:bg-primary/10",
+          )}
+        >
+          <FiGrid className="h-4 w-4" aria-hidden="true" />
+          Grid View
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("table")}
+          className={cn(
+            "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium transition",
+            viewMode === "table"
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-primary text-primary hover:bg-primary/10",
+          )}
+        >
+          <FiList className="h-4 w-4" aria-hidden="true" />
+          Table View
+        </button>
+      </div>
 
-        {renderProjectsGrid()}
+      {renderProjectsGrid()}
 
-        {pagination.totalPages > 1 && (
-          <PaginationContainer>
-            <PaginationButtons>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasPrev}
-                onClick={() => handlePageChange(pagination.page - 1)}
-              >
-                Previous
-              </Button>
-              <PaginationInfo>
-                Page {pagination.page} of {pagination.totalPages} ({pagination.totalCount} total)
-              </PaginationInfo>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={!pagination.hasNext}
-                onClick={() => handlePageChange(pagination.page + 1)}
-              >
-                Next
-              </Button>
-            </PaginationButtons>
-          </PaginationContainer>
-        )}
+      {pagination.totalPages > 1 ? (
+        <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-muted sm:flex-row">
+          <span>
+            Page {pagination.page} of {pagination.totalPages} · {pagination.totalCount} total
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              className="gap-2"
+              disabled={!pagination.hasPrev}
+              onClick={() => handlePageChange(pagination.page - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="secondary"
+              className="gap-2"
+              disabled={!pagination.hasNext}
+              onClick={() => handlePageChange(pagination.page + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
