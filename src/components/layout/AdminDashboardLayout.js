@@ -190,20 +190,6 @@ export default function AdminDashboardLayout({ children, activeTab = "dashboard"
           ))}
         </nav>
 
-        <div className={cn("border-t border-border px-4 py-4", isCollapsed && "px-2")}
-        >
-          <Link
-            href="/admin/settings"
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted transition hover:bg-surface-hover hover:text-foreground",
-              isCollapsed && "justify-center gap-0 px-2",
-            )}
-            onClick={closeMobileMenu}
-          >
-            <FiSettings className="h-5 w-5" aria-hidden="true" />
-            <span className={cn(isCollapsed && "sr-only")}>Settings</span>
-          </Link>
-        </div>
       </aside>
 
       {/* Main content */}

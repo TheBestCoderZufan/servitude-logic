@@ -1,7 +1,13 @@
 // src/app/dashboard/DashboardPageClient.jsx
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Card, CardContent, Button, Badge, Avatar } from "@/components/ui";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Card,
+  CardContent,
+  Badge,
+  Button,
+  Avatar,
+} from "@/components/ui/dashboard";
 import {
   FiFolder,
   FiDollarSign,
@@ -14,13 +20,14 @@ import {
   FiMessageSquare,
   FiArrowRight,
 } from "react-icons/fi";
-import { useProject } from "@/providers/ProjectProvider";
-import { formatDate, formatCurrency } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import { useProject } from "@/providers/ProjectProvider";
 import { useWorkflowEvents } from "@/hooks/useWorkflowEvents";
 import { intakeStatusLabel } from "@/data/page/admin/intake/intakeData";
 import { clientIntakeStatusBadgeVariants } from "@/data/page/dashboard/projectsClient.data";
 import { clientDashboardQuickActions } from "@/data/page/dashboard/clientDashboardPage.data";
+import { cn } from "@/lib/utils/cn";
 
 const EMPTY_PROGRESS = {
   total: 0,
@@ -42,7 +49,7 @@ const STATUS_BADGE_VARIANTS = {
 };
 
 /**
- * Badge variants aligned to invoice status codes for the quick invoice list.
+ * Maps invoice status codes to badge variants for the outstanding list.
  * @type {Record<string, string>}
  */
 const INVOICE_BADGE_VARIANTS = {
@@ -51,21 +58,43 @@ const INVOICE_BADGE_VARIANTS = {
   PAID: "success",
   DRAFT: "default",
 };
+
 /**
- * Maps quick action icon identifiers to react-icons components.
- * @type {Record<string, function(): JSX.Element>}
+ * Associates quick action icon identifiers with their React Icon counterparts.
+ * @type {Record<string, React.ComponentType>}
  */
-const quickActionIconMap = {
+const QUICK_ACTION_ICON_MAP = {
   FiFolder,
   FiDollarSign,
   FiMessageSquare,
 };
 
 /**
- * Extracts the first name from a contact string for friendlier greetings.
+ * Maps burndown segment tones to Tailwind background utilities.
+ * @type {Record<string, string>}
+ */
+const BURNDOWN_TONE_CLASSES = {
+  approved: "bg-success",
+  review: "bg-info",
+  blocked: "bg-error",
+  remaining: "bg-accent",
+};
+
+/**
+ * Maps summary pill variants to Tailwind color tokens.
+ * @type {Record<string, string>}
+ */
+const SUMMARY_PILL_CLASSES = {
+  positive: "bg-success-soft text-success",
+  warning: "bg-warning-soft text-warning",
+  negative: "bg-error-soft text-error",
+};
+
+/**
+ * Extracts the first name from the provided contact string.
  *
  * @param {string|null|undefined} contactName - Full contact name captured for the client.
- * @returns {string|null} First name when available.
+ * @returns {string|null} First name when available, otherwise null.
  */
 function getFirstName(contactName) {
   if (!contactName || typeof contactName !== "string") {
@@ -79,7 +108,7 @@ function getFirstName(contactName) {
 }
 
 /**
- * Derives a due-date status indicator for task summaries.
+ * Determines a due-date badge label and variant for task summaries.
  *
  * @param {string|Date|null|undefined} dueDate - Raw due date value.
  * @returns {{ label: string, variant: "error"|"warning"|"default" }} Status label and badge variant.
@@ -103,48 +132,19 @@ function getDueStatus(dueDate) {
   }
   return { label: "Scheduled", variant: "default" };
 }
-import {
-  PageHeader,
-  TitleGroup,
-  PageTitle,
-  PageSubtitle,
-  StatsGrid,
-  StatCard,
-  StatRow,
-  StatValue,
-  StatLabel,
-  StatIcon,
-  QuickActions,
-  ActionButton,
-  Grid,
-  SectionTitle,
-  List,
-  ListItem,
-  ItemMeta,
-  BurndownWrapper,
-  BurndownBar,
-  BurndownSegment,
-  SummaryPill,
-  DeliverableList,
-  DeliverableItem,
-  DeliverableDetails,
-  PendingRequestsGrid,
-  PendingRequestCard,
-  PendingRequestHeader,
-  PendingRequestTitle,
-  PendingRequestMeta,
-  PendingRequestFooter,
-} from "./style";
 
 /**
- * Dashboard client island that renders the dashboard UI using SSR-provided data.
+ * Dashboard client island that renders the dashboard UI with SSR-provided data.
  *
- * @param {Object} props - Component props.
- * @param {Array} props.initialProjects - Initial project list (scoped by server).
- * @param {Array} props.initialInvoices - Initial invoice list (scoped by server).
- * @param {Array} props.initialTasks - Initial task list (scoped by server).
- * @param {Array} props.initialFiles - Initial recent files list (scoped by server).
- * @param {Array} props.initialPendingIntakes - Pending intake submissions awaiting triage.
+ * @param {object} props - Component props.
+ * @param {Array<object>} props.initialProjects - Initial project list (scoped by server).
+ * @param {Array<object>} props.initialInvoices - Initial invoice list (scoped by server).
+ * @param {Array<object>} props.initialTasks - Initial task list (scoped by server).
+ * @param {Array<object>} props.initialFiles - Initial recent files list (scoped by server).
+ * @param {Array<object>} props.initialDeliverables - Initial deliverable list.
+ * @param {object} props.initialDeliverableProgress - Aggregated deliverable progress counts.
+ * @param {object|null} props.initialBillingSummary - Billing readiness summary when focused on a single project.
+ * @param {Array<object>} props.initialPendingIntakes - Pending intake submissions awaiting review.
  * @param {{contactName: string|null, companyName: string|null}|null} props.clientProfile - Lightweight client profile for personalization.
  * @returns {JSX.Element} Dashboard content.
  */
@@ -212,7 +212,7 @@ export default function DashboardPageClient({
 
   const stats = useMemo(() => {
     const activeProjects = projects.filter((project) =>
-      ["PLANNING", "IN_PROGRESS"].includes(project.status)
+      ["PLANNING", "IN_PROGRESS"].includes(project.status),
     ).length;
     const outstanding = invoices
       .filter((invoice) => ["SENT", "OVERDUE"].includes(invoice.status))
@@ -232,7 +232,7 @@ export default function DashboardPageClient({
     const items = [];
     invoices
       .filter(
-        (invoice) => ["SENT", "PAID"].includes(invoice.status) && within7d(invoice.issueDate)
+        (invoice) => ["SENT", "PAID"].includes(invoice.status) && within7d(invoice.issueDate),
       )
       .slice(0, 5)
       .forEach((invoice) => {
@@ -252,7 +252,7 @@ export default function DashboardPageClient({
         items.push({
           id: `task-${task.id}`,
           icon: FiClock,
-          text: `Task "${task.title}" due ${formatDate(task.dueDate)}`,
+          text: `Task \"${task.title}\" due ${formatDate(task.dueDate)}`,
           date: task.dueDate,
         });
       });
@@ -261,12 +261,14 @@ export default function DashboardPageClient({
       .slice(0, 5);
   }, [invoices, tasks]);
 
-  const outstandingInvoices = useMemo(() =>
-    invoices
-      .filter((invoice) => ["SENT", "OVERDUE"].includes(invoice.status))
-      .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-      .slice(0, 3),
-  [invoices]);
+  const outstandingInvoices = useMemo(
+    () =>
+      invoices
+        .filter((invoice) => ["SENT", "OVERDUE"].includes(invoice.status))
+        .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
+        .slice(0, 3),
+    [invoices],
+  );
 
   const deliverableSegments = useMemo(() => {
     if (!deliverableProgress?.total) {
@@ -306,8 +308,70 @@ export default function DashboardPageClient({
     return pendingTotal > 2 ? "negative" : "warning";
   }, [billingSummary]);
 
+  const statCards = useMemo(() => {
+    const pendingDeliverablesCount = Math.max(
+      (deliverableProgress?.total || 0) - (deliverableProgress?.approved || 0),
+      0,
+    );
+    const billingPendingCount = billingSummary
+      ? (billingSummary.pendingDeliverables || 0) +
+        (billingSummary.pendingChecklists || 0) +
+        (billingSummary.pendingFiles || 0)
+      : 0;
+    return [
+      {
+        id: "projects",
+        value: String(stats.activeProjects),
+        label: "Active Projects",
+        icon: FiFolder,
+        iconClass: "bg-info-soft text-info",
+      },
+      {
+        id: "balance",
+        value: formatCurrency(stats.outstanding || 0),
+        label: "Outstanding Balance",
+        icon: FiDollarSign,
+        iconClass: "bg-error-soft text-error",
+      },
+      {
+        id: "deliverables",
+        value: String(pendingDeliverablesCount),
+        label: "Pending Deliverables",
+        icon: FiClipboard,
+        iconClass: "bg-warning-soft text-warning",
+      },
+      {
+        id: "billing",
+        value: billingSummary
+          ? billingSummary.ready
+            ? "Ready"
+            : String(billingPendingCount)
+          : stats.pendingRequests
+          ? String(stats.pendingRequests)
+          : String(stats.recentFiles.length),
+        label: billingSummary
+          ? "Billing Gate"
+          : stats.pendingRequests
+          ? "Requests Under Review"
+          : "Recent Files",
+        icon: billingSummary
+          ? FiCheckCircle
+          : stats.pendingRequests
+          ? FiSend
+          : FiFile,
+        iconClass: billingSummary
+          ? billingSummary.ready
+            ? "bg-success-soft text-success"
+            : "bg-warning-soft text-warning"
+          : stats.pendingRequests
+          ? "bg-status-in-progress-soft text-status-in-progress"
+          : "bg-success-soft text-success",
+      },
+    ];
+  }, [stats, deliverableProgress, billingSummary]);
+
   /**
-   * Navigates the client to the intake flow for submitting a new project request.
+   * Navigates to the intake flow for creating a new project request.
    *
    * @returns {void}
    */
@@ -357,370 +421,325 @@ export default function DashboardPageClient({
   }, [clientProfileState, selectedProject]);
 
   return (
-    <div>
-      <PageHeader>
-        <TitleGroup>
-          <PageTitle>
+    <div className="space-y-12">
+      <section className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-2">
+          <h1 className="font-heading text-3xl font-semibold">
             {clientFirstName ? `Welcome back, ${clientFirstName}` : "Welcome"}
-          </PageTitle>
-          <PageSubtitle>{dashboardSubtitle}</PageSubtitle>
-        </TitleGroup>
-        <Button $variant="outline" onClick={goToNewProject}>
+          </h1>
+          <p className="text-base text-muted">{dashboardSubtitle}</p>
+        </div>
+        <Button variant="secondary" size="md" onClick={goToNewProject} className="rounded-xl">
           Submit Project Intake
         </Button>
-      </PageHeader>
+      </section>
 
-      <QuickActions role="navigation" aria-label="Quick dashboard shortcuts">
+      <section
+        className="flex flex-wrap gap-3"
+        role="navigation"
+        aria-label="Quick dashboard shortcuts"
+      >
         {clientDashboardQuickActions.map((action) => {
-          const Icon = quickActionIconMap[action.icon] || FiArrowRight;
+          const Icon = QUICK_ACTION_ICON_MAP[action.icon] || FiArrowRight;
           const decodedDescription = action.description
             .replace(/&amp;/g, "&")
             .replace(/&apos;/g, "'");
           return (
-            <ActionButton
+            <Button
               key={action.id}
               type="button"
+              variant="secondary"
               size="sm"
-              $variant="outline"
+              className="rounded-xl border border-border/70 bg-surface px-4 py-2 text-sm text-muted hover:border-primary/40 hover:text-primary"
               onClick={() => router.push(action.href)}
               aria-label={`${action.label}. ${decodedDescription}`}
               title={decodedDescription}
             >
-              <Icon size={16} />
+              <Icon size={16} aria-hidden />
               {action.label}
-            </ActionButton>
+            </Button>
           );
         })}
-      </QuickActions>
+      </section>
 
-      <StatsGrid>
-        <StatCard>
-          <CardContent>
-            <StatRow>
-              <div>
-                <StatValue>{stats.activeProjects}</StatValue>
-                <StatLabel>Active Projects</StatLabel>
-              </div>
-              <StatIcon color="#3b82f6">
-                <FiFolder />
-              </StatIcon>
-            </StatRow>
-          </CardContent>
-        </StatCard>
-        <StatCard>
-          <CardContent>
-            <StatRow>
-              <div>
-                <StatValue>{formatCurrency(stats.outstanding || 0)}</StatValue>
-                <StatLabel>Outstanding Balance</StatLabel>
-              </div>
-              <StatIcon color="#ef4444">
-                <FiDollarSign />
-              </StatIcon>
-            </StatRow>
-          </CardContent>
-        </StatCard>
-        <StatCard>
-          <CardContent>
-            <StatRow>
-              <div>
-                <StatValue>
-                  {Math.max(
-                    (deliverableProgress?.total || 0) - (deliverableProgress?.approved || 0),
-                    0,
-                  )}
-                </StatValue>
-                <StatLabel>Pending Deliverables</StatLabel>
-              </div>
-              <StatIcon color="#f59e0b">
-                <FiClipboard />
-              </StatIcon>
-            </StatRow>
-          </CardContent>
-        </StatCard>
-        <StatCard>
-          <CardContent>
-            <StatRow>
-              <div>
-                <StatValue>
-                  {billingSummary
-                    ? billingSummary.ready
-                      ? "Ready"
-                      : (billingSummary.pendingDeliverables || 0) +
-                        (billingSummary.pendingChecklists || 0) +
-                        (billingSummary.pendingFiles || 0)
-                    : stats.pendingRequests || stats.recentFiles.length}
-                </StatValue>
-                <StatLabel>
-                  {billingSummary
-                    ? "Billing Gate"
-                    : stats.pendingRequests
-                    ? "Requests Under Review"
-                    : "Recent Files"}
-                </StatLabel>
-              </div>
-              <StatIcon
-                color={billingSummary
-                  ? billingSummary.ready
-                    ? "#10b981"
-                    : "#f97316"
-                  : stats.pendingRequests
-                  ? "#6366f1"
-                  : "#10b981"}
-              >
-                {billingSummary ? (
-                  <FiCheckCircle />
-                ) : stats.pendingRequests ? (
-                  <FiSend />
-                ) : (
-                  <FiFile />
-                )}
-              </StatIcon>
-            </StatRow>
-          </CardContent>
-        </StatCard>
-      </StatsGrid>
+      <section>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {statCards.map((card) => {
+            const Icon = card.icon;
+            return (
+              <Card key={card.id} interactive className="rounded-3xl">
+                <CardContent className="flex items-center justify-between gap-6 px-6 py-6">
+                  <div className="space-y-1">
+                    <div className="text-3xl font-semibold text-foreground">{card.value}</div>
+                    <p className="text-sm text-muted">{card.label}</p>
+                  </div>
+                  <span
+                    className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-2xl text-lg",
+                      card.iconClass,
+                    )}
+                  >
+                    <Icon aria-hidden />
+                  </span>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
 
       {pendingIntakes.length > 0 && (
-        <section aria-label="Requests under review">
-          <SectionTitle>Requests Under Review</SectionTitle>
-          <PendingRequestsGrid>
+        <section className="space-y-4" aria-label="Requests under review">
+          <h2 className="font-heading text-xl font-semibold">Requests Under Review</h2>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {pendingIntakes.map((intake) => {
-              const badgeVariant =
-                clientIntakeStatusBadgeVariants[intake.status] || "warning";
+              const badgeVariant = clientIntakeStatusBadgeVariants[intake.status] || "warning";
               const submittedAt = intake.submittedAt
                 ? formatDate(intake.submittedAt)
                 : "Recently submitted";
               return (
-                <PendingRequestCard key={`pending-${intake.id}`}>
-                    <PendingRequestHeader>
-                      <PendingRequestTitle>{intake.projectName}</PendingRequestTitle>
-                      <Badge variant={badgeVariant}>
-                        {intakeStatusLabel(intake.status)}
-                      </Badge>
-                    </PendingRequestHeader>
-                  <PendingRequestMeta>
-                    <span>
-                      <FiClock size={14} style={{ marginRight: 6 }} /> Submitted {submittedAt}
-                    </span>
-                    {intake.summary ? <span>{intake.summary}</span> : null}
-                    {intake.budgetRange ? (
-                      <span>
-                        <strong>Budget:</strong> {intake.budgetRange}
-                      </span>
+                <Card key={`pending-${intake.id}`} className="rounded-3xl">
+                  <CardContent className="space-y-4 px-6 py-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <h3 className="font-heading text-lg font-semibold text-foreground">
+                          {intake.projectName}
+                        </h3>
+                        <p className="text-sm text-muted">
+                          <FiClock aria-hidden className="mr-2 inline" /> Submitted {submittedAt}
+                        </p>
+                      </div>
+                      <Badge variant={badgeVariant}>{intakeStatusLabel(intake.status)}</Badge>
+                    </div>
+                    {intake.summary ? (
+                      <p className="text-sm text-foreground/80">{intake.summary}</p>
                     ) : null}
-                    {intake.targetLaunch ? (
-                      <span>
-                        <strong>Target launch:</strong> {intake.targetLaunch}
-                      </span>
-                    ) : null}
-                  </PendingRequestMeta>
-                  <PendingRequestFooter>
-                    <span>
-                      We&apos;ll let you know as soon as the team finishes triage.
-                    </span>
-                    <Button
-                      size="sm"
-                      $variant="ghost"
-                      onClick={() => router.push("/dashboard/projects?submitted=1")}
-                      aria-label="Track intake status"
-                    >
-                      Track status
-                    </Button>
-                  </PendingRequestFooter>
-                </PendingRequestCard>
+                    <div className="space-y-2 text-sm text-muted">
+                      {intake.budgetRange ? (
+                        <p>
+                          <strong className="font-semibold text-foreground">Budget:</strong> {intake.budgetRange}
+                        </p>
+                      ) : null}
+                      {intake.targetLaunch ? (
+                        <p>
+                          <strong className="font-semibold text-foreground">Target launch:</strong> {intake.targetLaunch}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-surface px-4 py-3 text-sm text-muted">
+                      <span>We&apos;ll let you know as soon as the team finishes triage.</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary"
+                        onClick={() => router.push("/dashboard/projects?submitted=1")}
+                        aria-label="Track intake status"
+                      >
+                        Track status
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               );
             })}
-          </PendingRequestsGrid>
+          </div>
         </section>
       )}
 
-      <Grid>
-        <div>
-          <SectionTitle>Deliverable Progress</SectionTitle>
-          <Card>
-            <CardContent>
-              {deliverableProgress?.total ? (
-                <BurndownWrapper>
-                  <BurndownBar>
-                    {deliverableSegments.map((segment) => (
-                      <BurndownSegment
-                        key={segment.tone}
-                        $tone={segment.tone}
-                        $width={segment.value}
-                      />
-                    ))}
-                  </BurndownBar>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-                    {deliverableMetrics.map((metric) => (
-                      <SummaryPill key={metric.label} $variant={metric.variant}>
-                        {metric.label}: {metric.value}
-                      </SummaryPill>
-                    ))}
-                    {billingSummary && (
-                      <SummaryPill $variant={billingSummaryVariant || "warning"}>
-                        {billingSummary.ready ? "Billing ready" : billingSummary.summary}
-                      </SummaryPill>
-                    )}
-                  </div>
-                </BurndownWrapper>
-              ) : (
-                <p style={{ color: "#64748b" }}>No deliverables have been scheduled yet.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <SectionTitle>Upcoming Deliverables</SectionTitle>
-          <Card>
-            <CardContent>
-              {deliverables.length > 0 ? (
-                <DeliverableList>
-                  {deliverables.map((deliverable) => {
-                    const badgeVariant =
-                      STATUS_BADGE_VARIANTS[deliverable.status] || "default";
-                    return (
-                      <DeliverableItem key={deliverable.id}>
-                        <DeliverableDetails>
-                          <div style={{ fontWeight: 600, color: "#1e293b" }}>
-                            {deliverable.title}
-                          </div>
-                          <div>
-                            {deliverable.project?.name && (
-                              <span style={{ marginRight: 12 }}>
-                                {deliverable.project.name}
-                              </span>
-                            )}
-                            {deliverable.dueDate ? (
-                              <span>
-                                <FiCalendar size={14} style={{ marginRight: 6 }} />
-                                {formatDate(deliverable.dueDate)}
-                              </span>
-                            ) : (
-                              <span>No due date</span>
-                            )}
-                          </div>
-                          {deliverable.latestStatusNote && (
-                            <span style={{ color: "#64748b" }}>
-                              {deliverable.latestStatusNote}
-                            </span>
-                          )}
-                        </DeliverableDetails>
-                        <Badge variant={badgeVariant}>
-                          {deliverable.status.toLowerCase().replaceAll("_", " ")}
-                        </Badge>
-                      </DeliverableItem>
-                    );
-                  })}
-                </DeliverableList>
-              ) : (
-                <p style={{ color: "#64748b" }}>No pending deliverables at this time.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        <div>
-          <SectionTitle>Recent Activity</SectionTitle>
-          <Card>
-            <CardContent>
-              <List>
-                {recentActivity.map((item) => (
-                  <ListItem key={item.id}>
-                    <ItemMeta>
-                      <Avatar>
-                        <item.icon size={18} />
-                      </Avatar>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{item.text}</div>
-                        <div style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                          {formatDate(item.date)}
-                        </div>
+      <section className="grid gap-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-semibold text-foreground">Deliverable Progress</h2>
+            <Card className="rounded-3xl">
+              <CardContent className="space-y-4 px-6 py-6">
+                {deliverableProgress?.total ? (
+                  <>
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-border/60">
+                      <div className="flex h-full w-full">
+                        {deliverableSegments.map((segment) => (
+                          <div
+                            key={segment.tone}
+                            className={cn("h-full", BURNDOWN_TONE_CLASSES[segment.tone])}
+                            style={{ width: `${segment.value}%` }}
+                          />
+                        ))}
                       </div>
-                    </ItemMeta>
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {deliverableMetrics.map((metric) => (
+                        <span
+                          key={metric.label}
+                          className={cn(
+                            "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                            SUMMARY_PILL_CLASSES[metric.variant] || SUMMARY_PILL_CLASSES.warning,
+                          )}
+                        >
+                          {metric.label}: {metric.value}
+                        </span>
+                      ))}
+                      {billingSummary ? (
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold",
+                            SUMMARY_PILL_CLASSES[billingSummaryVariant || "warning"],
+                          )}
+                        >
+                          {billingSummary.ready ? "Billing ready" : billingSummary.summary}
+                        </span>
+                      ) : null}
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted">No deliverables have been scheduled yet.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-          <SectionTitle>Outstanding Invoices</SectionTitle>
-          <Card>
-            <CardContent>
-              {outstandingInvoices.length > 0 ? (
-                <List>
-                  {outstandingInvoices.map((invoice) => (
-                    <ListItem key={invoice.id}>
-                      <ItemMeta>
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-semibold text-foreground">Upcoming Deliverables</h2>
+            <Card className="rounded-3xl">
+              <CardContent className="space-y-4 px-6 py-6">
+                {deliverables.length > 0 ? (
+                  <ul className="space-y-4">
+                    {deliverables.map((deliverable) => {
+                      const badgeVariant = STATUS_BADGE_VARIANTS[deliverable.status] || "default";
+                      return (
+                        <li
+                          key={deliverable.id}
+                          className="flex items-start justify-between gap-4 rounded-2xl border border-border/60 bg-surface px-4 py-4"
+                        >
+                          <div className="space-y-2 text-sm">
+                            <p className="font-semibold text-foreground">{deliverable.title}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-muted">
+                              {deliverable.project?.name ? (
+                                <span>{deliverable.project.name}</span>
+                              ) : null}
+                              {deliverable.dueDate ? (
+                                <span className="inline-flex items-center gap-2">
+                                  <FiCalendar aria-hidden />
+                                  {formatDate(deliverable.dueDate)}
+                                </span>
+                              ) : (
+                                <span>No due date</span>
+                              )}
+                            </div>
+                            {deliverable.latestStatusNote ? (
+                              <p className="text-muted">{deliverable.latestStatusNote}</p>
+                            ) : null}
+                          </div>
+                          <Badge variant={badgeVariant} className="self-start">
+                            {deliverable.status.toLowerCase().replaceAll("_", " ")}
+                          </Badge>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">No pending deliverables at this time.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-semibold text-foreground">Recent Activity</h2>
+            <Card className="rounded-3xl">
+              <CardContent className="space-y-4 px-6 py-6">
+                <ul className="space-y-4">
+                  {recentActivity.map((item) => (
+                    <li key={item.id} className="flex items-center gap-4">
+                      <Avatar size={40} className="bg-accent-soft text-info">
+                        <item.icon aria-hidden size={18} />
+                      </Avatar>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-semibold text-foreground">{item.text}</p>
+                        <p className="text-muted">{formatDate(item.date)}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-semibold text-foreground">Outstanding Invoices</h2>
+            <Card className="rounded-3xl">
+              <CardContent className="space-y-4 px-6 py-6">
+                {outstandingInvoices.length > 0 ? (
+                  <ul className="space-y-4">
+                    {outstandingInvoices.map((invoice) => (
+                      <li key={invoice.id} className="flex items-center gap-4">
                         <Badge variant={INVOICE_BADGE_VARIANTS[invoice.status] || "default"}>
                           {invoice.status.toLowerCase()}
                         </Badge>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>
+                        <div className="space-y-1 text-sm">
+                          <p className="font-semibold text-foreground">
                             {formatCurrency(invoice.amount)}
-                          </div>
-                          <div style={{ color: "#64748b", fontSize: "0.875rem" }}>
+                          </p>
+                          <p className="text-muted">
                             Due {formatDate(invoice.dueDate)} · {invoice.project?.name || "Project"}
-                          </div>
+                          </p>
                         </div>
-                      </ItemMeta>
-                    </ListItem>
-                  ))}
-                </List>
-              ) : (
-                <div style={{ color: "#64748b", fontSize: "0.9rem" }}>
-                  No invoices need your attention right now.
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">No invoices need your attention right now.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-          <SectionTitle>Upcoming Tasks</SectionTitle>
-          <Card>
-            <CardContent>
-              <List>
-                {tasks.slice(0, 6).map((task) => {
-                  const dueStatus = getDueStatus(task.dueDate);
-                  return (
-                    <ListItem key={task.id}>
-                      <ItemMeta>
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-semibold text-foreground">Upcoming Tasks</h2>
+            <Card className="rounded-3xl">
+              <CardContent className="space-y-4 px-6 py-6">
+                <ul className="space-y-4">
+                  {tasks.slice(0, 6).map((task) => {
+                    const dueStatus = getDueStatus(task.dueDate);
+                    return (
+                      <li key={task.id} className="flex items-center gap-4">
                         <Badge variant={dueStatus.variant}>{dueStatus.label}</Badge>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{task.title}</div>
-                          <div style={{ color: "#64748b", fontSize: "0.875rem" }}>
+                        <div className="space-y-1 text-sm">
+                          <p className="font-semibold text-foreground">{task.title}</p>
+                          <p className="text-muted">
                             Due {task.dueDate ? formatDate(task.dueDate) : "—"}
-                          </div>
+                          </p>
                         </div>
-                      </ItemMeta>
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </CardContent>
-          </Card>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
 
-          <SectionTitle>Recent Files</SectionTitle>
-          <Card>
-            <CardContent>
-              <List>
-                {files.slice(0, 5).map((file) => (
-                  <ListItem key={file.id}>
-                    <ItemMeta>
-                      <Avatar>
+          <div className="space-y-4">
+            <h2 className="font-heading text-xl font-semibold text-foreground">Recent Files</h2>
+            <Card className="rounded-3xl">
+              <CardContent className="space-y-4 px-6 py-6">
+                <ul className="space-y-4">
+                  {files.slice(0, 5).map((file) => (
+                    <li key={file.id} className="flex items-center gap-4">
+                      <Avatar size={40} className="bg-secondary text-secondary-foreground">
                         <span>{file.fileType?.slice(0, 3)?.toUpperCase()}</span>
                       </Avatar>
-                      <div>
-                        <div style={{ fontWeight: 600 }}>{file.fileName}</div>
-                        <div style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                          Uploaded {formatDate(file.uploadedAt)}
-                        </div>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-semibold text-foreground">{file.fileName}</p>
+                        <p className="text-muted">Uploaded {formatDate(file.uploadedAt)}</p>
                       </div>
-                    </ItemMeta>
-                  </ListItem>
-                ))}
-              </List>
-            </CardContent>
-          </Card>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </Grid>
+      </section>
     </div>
   );
 }

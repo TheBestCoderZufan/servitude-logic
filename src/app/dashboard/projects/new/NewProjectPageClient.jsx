@@ -1,30 +1,24 @@
 // src/app/dashboard/projects/new/NewProjectPageClient.jsx
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import ClientDashboardLayout from "@/components/layout/ClientDashboardLayout";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
   Button,
   Input,
   Select,
-  TextArea,
-  FormGroup,
-  Label,
-  HelperText,
-  ErrorText,
-} from "@/components/ui";
-import { Title, Stepper, Step } from "./style.jsx";
-import { useRouter } from "next/navigation";
+  Textarea,
+} from "@/components/ui/dashboard";
 import { intakeFormSteps } from "@/data/forms/clientIntakeForm.data";
 import { FiArrowLeft, FiArrowRight, FiSend } from "react-icons/fi";
+import { useRouter } from "next/navigation";
 
 /**
  * Validates a set of fields for the current step.
  *
- * @param {Object} values - Current form values keyed by field id.
+ * @param {Record<string, string|boolean>} values - Current form values keyed by field id.
  * @param {Array} fields - Field definitions for the active step.
- * @returns {Object} Field level error messages keyed by field id.
+ * @returns {Record<string, string>} Field level error messages keyed by field id.
  */
 function validateStep(values, fields) {
   return fields.reduce((accumulator, field) => {
@@ -44,11 +38,7 @@ function getInitialValues() {
   const base = {};
   intakeFormSteps.forEach((step) => {
     step.fields.forEach((field) => {
-      if (field.type === "checkbox") {
-        base[field.id] = false;
-      } else {
-        base[field.id] = "";
-      }
+      base[field.id] = field.type === "checkbox" ? false : "";
     });
   });
   return base;
@@ -67,7 +57,6 @@ export default function NewProjectPageClient() {
   const [fieldErrors, setFieldErrors] = useState({});
   const [values, setValues] = useState(() => getInitialValues());
 
-  // Hydrate from localStorage when available
   useEffect(() => {
     try {
       const saved = localStorage.getItem("newProjectDraft");
@@ -80,7 +69,6 @@ export default function NewProjectPageClient() {
     }
   }, []);
 
-  // Persist draft to localStorage for resilience
   useEffect(() => {
     try {
       localStorage.setItem("newProjectDraft", JSON.stringify(values));
@@ -158,7 +146,7 @@ export default function NewProjectPageClient() {
 
     switch (field.type) {
       case "textarea":
-        return <TextArea {...sharedProps} rows={4} placeholder={field.placeholder} />;
+        return <Textarea {...sharedProps} rows={4} placeholder={field.placeholder} />;
       case "select":
         return (
           <Select {...sharedProps}>
@@ -170,6 +158,22 @@ export default function NewProjectPageClient() {
             ))}
           </Select>
         );
+      case "checkbox":
+        return (
+          <div className="flex items-center gap-2">
+            <input
+              id={field.id}
+              name={field.id}
+              type="checkbox"
+              checked={Boolean(values[field.id])}
+              onChange={(event) => handleInputChange(field.id, event.target.checked)}
+              className="h-4 w-4 rounded border-border bg-surface text-primary focus:ring-ring"
+            />
+            {field.placeholder ? (
+              <span className="text-sm text-muted">{field.placeholder}</span>
+            ) : null}
+          </div>
+        );
       case "text":
       default:
         return <Input {...sharedProps} placeholder={field.placeholder} />;
@@ -177,65 +181,96 @@ export default function NewProjectPageClient() {
   }
 
   return (
-    <ClientDashboardLayout>
-      <div>
-        <Title>Project Intake</Title>
-        <Stepper aria-label="Intake steps">
-          {intakeFormSteps.map((step, index) => (
-            <Step key={step.id} $active={index === activeStepIndex}>
-              {index + 1}. {step.title}
-            </Step>
-          ))}
-        </Stepper>
+    <div className="space-y-10">
+      <header className="space-y-2">
+        <h1 className="font-heading text-3xl font-semibold text-foreground">Project Intake</h1>
+        <p className="text-sm text-muted">
+          Share project details so our team can scope, staff, and kickoff quickly.
+        </p>
+      </header>
 
-        <Card>
-          <CardContent>
-            <h2 style={{ marginBottom: "0.75rem" }}>{activeStep.title}</h2>
-            <p style={{ color: "#64748b", marginBottom: "1.5rem" }}>{activeStep.description}</p>
+      <nav
+        className="flex flex-wrap gap-3"
+        aria-label="Intake steps"
+      >
+        {intakeFormSteps.map((step, index) => (
+          <span
+            key={step.id}
+            className={
+              index === activeStepIndex
+                ? "rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary"
+                : "rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted"
+            }
+          >
+            {index + 1}. {step.title}
+          </span>
+        ))}
+      </nav>
 
+      <Card className="rounded-3xl">
+        <CardContent className="space-y-6 px-6 py-6">
+          <div className="space-y-2">
+            <h2 className="font-heading text-xl font-semibold text-foreground">{activeStep.title}</h2>
+            <p className="text-sm text-muted">{activeStep.description}</p>
+          </div>
+
+          <div className="space-y-6">
             {activeStep.fields.map((field) => (
-              <FormGroup key={field.id}>
-                <Label htmlFor={field.id}>
+              <div key={field.id} className="space-y-2">
+                <label htmlFor={field.id} className="block text-sm font-medium text-foreground">
                   {field.label}
                   {field.required ? " *" : ""}
-                </Label>
+                </label>
                 {renderField(field)}
-                {field.helper && <HelperText>{field.helper}</HelperText>}
-                {fieldErrors[field.id] && <ErrorText>{fieldErrors[field.id]}</ErrorText>}
-              </FormGroup>
+                {field.helper ? (
+                  <p className="text-xs text-muted">{field.helper}</p>
+                ) : null}
+                {fieldErrors[field.id] ? (
+                  <p className="text-xs font-semibold text-error">{fieldErrors[field.id]}</p>
+                ) : null}
+              </div>
             ))}
+          </div>
 
-            {error && <ErrorText>{error}</ErrorText>}
+          {error ? <p className="text-sm font-semibold text-error">{error}</p> : null}
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                marginTop: "1.5rem",
-              }}
+          <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={goToPreviousStep}
+              disabled={activeStepIndex === 0 || submitting}
+              className="rounded-lg sm:w-auto"
             >
-              <Button
-                variant="outline"
-                onClick={goToPreviousStep}
-                disabled={activeStepIndex === 0 || submitting}
-              >
-                <FiArrowLeft /> Back
-              </Button>
+              <FiArrowLeft aria-hidden className="mr-2" /> Back
+            </Button>
 
-              {isLastStep ? (
-                <Button onClick={handleSubmit} disabled={submitting || !canProceed}>
-                  <FiSend /> {submitting ? "Submitting..." : "Submit request"}
-                </Button>
-              ) : (
-                <Button onClick={goToNextStep} disabled={!canProceed || submitting}>
-                  Next <FiArrowRight />
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </ClientDashboardLayout>
+            {isLastStep ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleSubmit}
+                disabled={submitting || !canProceed}
+                className="rounded-lg sm:w-auto"
+              >
+                <FiSend aria-hidden className="mr-2" />
+                {submitting ? "Submitting..." : "Submit request"}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={goToNextStep}
+                disabled={!canProceed || submitting}
+                className="rounded-lg sm:w-auto"
+              >
+                Next <FiArrowRight aria-hidden className="ml-2" />
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

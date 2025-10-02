@@ -86,15 +86,4 @@ export const navigationItems = [
       },
     ],
   },
-  {
-    section: "Settings",
-    items: [
-      {
-        icon: FiSettings,
-        label: "Settings",
-        href: "/admin/settings",
-        id: "settings",
-      },
-    ],
-  },
 ];

@@ -15,12 +15,25 @@
   --sl-color-border-light: #f1f5f9;
   --sl-color-border-dark: #cbd5e1;
   --sl-color-ring: #3b82f6;
+  --sl-color-success: #10b981;
+  --sl-color-success-soft: #d1fae5;
+  --sl-color-warning: #f59e0b;
+  --sl-color-warning-soft: #fef3c7;
+  --sl-color-error: #ef4444;
+  --sl-color-error-soft: #fee2e2;
+  --sl-color-info: #3b82f6;
+  --sl-color-info-soft: #dbeafe;
 
   --sl-status-planning: #8b5cf6;
   --sl-status-in-progress: #3b82f6;
   --sl-status-completed: #10b981;
   --sl-status-on-hold: #f59e0b;
   --sl-status-cancelled: #ef4444;
+  --sl-status-planning-soft: #f3e8ff;
+  --sl-status-in-progress-soft: #dbeafe;
+  --sl-status-completed-soft: #d1fae5;
+  --sl-status-on-hold-soft: #fef3c7;
+  --sl-status-cancelled-soft: #fee2e2;
 
   --sl-priority-low: #10b981;
   --sl-priority-medium: #f59e0b;
@@ -58,6 +71,24 @@
   --sl-color-border-light: #475569;
   --sl-color-border-dark: #1e293b;
   --sl-color-ring: #60a5fa;
+  --sl-color-success: #14b8a6;
+  --sl-color-success-soft: #064e3b;
+  --sl-color-warning: #facc15;
+  --sl-color-warning-soft: #78350f;
+  --sl-color-error: #f87171;
+  --sl-color-error-soft: #7f1d1d;
+  --sl-color-info: #60a5fa;
+  --sl-color-info-soft: #1e3a8a;
+  --sl-status-planning: #8b5cf6;
+  --sl-status-in-progress: #3b82f6;
+  --sl-status-completed: #10b981;
+  --sl-status-on-hold: #f59e0b;
+  --sl-status-cancelled: #ef4444;
+  --sl-status-planning-soft: #4c1d95;
+  --sl-status-in-progress-soft: #1e3a8a;
+  --sl-status-completed-soft: #064e3b;
+  --sl-status-on-hold-soft: #78350f;
+  --sl-status-cancelled-soft: #7f1d1d;
 }
 
 * {

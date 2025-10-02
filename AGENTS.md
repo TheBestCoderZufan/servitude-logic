@@ -5,7 +5,6 @@
 - Read the documentation in docs/API.md.
 - Place all styled components in a dedicated separate file.
 - Avoid hardcoding values in styled component properties; always reference `theme.js`.
-  <!-- - In the `src/styles/theme.js` file, there are two theme objects: -->
   - `theme` → Light theme (default)
   - `darkTheme` → Dark theme (restricted to `/admin/*` and `/dashboard/*` pages only).
   - **Do not apply the dark theme to any other pages.**

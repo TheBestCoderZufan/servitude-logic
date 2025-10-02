@@ -1,7 +1,7 @@
 // src/app/dashboard/projects/[id]/ProjectDetailPageClient.jsx
 "use client";
+import React, { useState } from "react";
 import Link from "next/link";
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -12,14 +12,40 @@ import {
   Avatar,
   Table,
   TableHeader,
+  TableBody,
   TableRow,
   TableHead,
   TableCell,
-  TextArea,
-} from "@/components/ui";
+  Textarea,
+} from "@/components/ui/dashboard";
 import { FiCalendar, FiUsers, FiChevronLeft } from "react-icons/fi";
 import { formatDate } from "@/lib/utils";
-import { Header, TitleWrap, Title, Subtitle, Grid, SectionTitle } from "./stye";
+
+const PROJECT_STATUS_VARIANTS = {
+  COMPLETED: "success",
+  IN_PROGRESS: "inProgress",
+  ON_HOLD: "warning",
+  CANCELLED: "error",
+  PLANNING: "planning",
+};
+
+const TASK_STATUS_VARIANTS = {
+  DONE: "success",
+  IN_PROGRESS: "inProgress",
+  TODO: "warning",
+};
+
+const PRIORITY_VARIANTS = {
+  HIGH: "error",
+  MEDIUM: "warning",
+  LOW: "success",
+};
+
+const FILE_STATUS_VARIANTS = {
+  APPROVED: "success",
+  CHANGES_REQUESTED: "warning",
+  PENDING: "default",
+};
 
 /**
  * Project detail client island.
@@ -27,196 +53,248 @@ import { Header, TitleWrap, Title, Subtitle, Grid, SectionTitle } from "./stye";
  * interactions like approving files and requesting revisions via API calls.
  *
  * @param {{ project: any }} props - Server-provided project payload.
+ * @returns {JSX.Element}
  */
 export default function ProjectDetailPageClient({ project }) {
   const [revModalOpen, setRevModalOpen] = useState(false);
   const [revNote, setRevNote] = useState("");
   const [activeFile, setActiveFile] = useState(null);
 
+  const statusVariant = PROJECT_STATUS_VARIANTS[project.status] || "default";
+
+  async function approveFile(fileId) {
+    await fetch(`/api/files/${fileId}/approve`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: "Approved by client" }),
+    });
+  }
+
+  async function submitRevisionRequest(fileId) {
+    await fetch(`/api/files/${fileId}/request-revision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note: revNote }),
+    });
+  }
+
   return (
-    <div>
-      <Header>
-        <TitleWrap>
-          <Title>{project.name}</Title>
-          <Subtitle>
+    <div className="space-y-10">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-1">
+          <h1 className="font-heading text-3xl font-semibold text-foreground">{project.name}</h1>
+          <p className="text-sm text-muted">
             {project.startDate ? formatDate(project.startDate) : "—"}
             {project.endDate ? ` → ${formatDate(project.endDate)}` : ""}
-          </Subtitle>
-        </TitleWrap>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Badge
-            variant={
-              project.status === "COMPLETED"
-                ? "success"
-                : project.status === "IN_PROGRESS"
-                ? "inProgress"
-                : project.status === "ON_HOLD"
-                ? "warning"
-                : project.status === "CANCELLED"
-                ? "error"
-                : "planning"
-            }
-          >
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Badge variant={statusVariant} className="capitalize">
             {project.status.toLowerCase().replace("_", " ")}
           </Badge>
-          <Link href="/dashboard/projects">
-            <Button variant="outline" size="sm">
-              <FiChevronLeft /> Back
+          <Link href="/dashboard/projects" className="inline-flex">
+            <Button variant="secondary" size="sm" className="rounded-lg">
+              <FiChevronLeft aria-hidden className="mr-2" /> Back
             </Button>
           </Link>
         </div>
-      </Header>
+      </header>
 
-      <Grid>
-        <div>
-          <SectionTitle>Overview</SectionTitle>
-          <Card style={{ marginBottom: 24 }}>
-            <CardContent>
-              <div style={{ marginBottom: 12, display: "flex", justifyContent: "space-between" }}>
-                <div style={{ minWidth: 200 }}>
-                  <div style={{ color: "#64748b" }}>Client</div>
-                  <div style={{ fontWeight: 700 }}>{project.client?.companyName || "—"}</div>
-                </div>
-                <div style={{ minWidth: 200 }}>
-                  <div style={{ color: "#64748b" }}>Status</div>
-                  <div style={{ fontWeight: 700 }}>{project.status.toLowerCase().replace("_", " ")}</div>
-                </div>
-                <div style={{ minWidth: 200 }}>
-                  <div style={{ color: "#64748b" }}>Progress</div>
-                  <div style={{ fontWeight: 700 }}>{project.progress}%</div>
-                </div>
+      <section className="space-y-4">
+        <h2 className="font-heading text-xl font-semibold text-foreground">Overview</h2>
+        <Card className="rounded-3xl">
+          <CardContent className="space-y-6 px-6 py-6">
+            <div className="grid gap-4 text-sm text-muted md:grid-cols-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide">Client</p>
+                <p className="text-base font-semibold text-foreground">
+                  {project.client?.companyName || "—"}
+                </p>
               </div>
-              <ProgressBar>
-                <ProgressFill progress={project.progress} />
-              </ProgressBar>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginTop: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <FiCalendar /> Start {project.startDate ? formatDate(project.startDate) : "—"}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <FiCalendar /> End {project.endDate ? formatDate(project.endDate) : "—"}
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <FiUsers /> Team {project.teamSize || 0}
-                </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide">Status</p>
+                <p className="text-base font-semibold text-foreground">
+                  {project.status.toLowerCase().replace("_", " ")}
+                </p>
               </div>
-            </CardContent>
-          </Card>
-
-          <SectionTitle>Milestones</SectionTitle>
-          <Card style={{ marginBottom: 24 }}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Task</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Assignee</TableHead>
-                  <TableHead>Due</TableHead>
-                </TableRow>
-              </TableHeader>
-              <tbody>
-                {project.tasks.map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell>{t.title}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          t.status === "DONE"
-                            ? "success"
-                            : t.status === "IN_PROGRESS"
-                            ? "inProgress"
-                            : t.status === "TODO"
-                            ? "warning"
-                            : "default"
-                        }
-                      >
-                        {t.status.toLowerCase().replace("_", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          t.priority === "HIGH"
-                            ? "error"
-                            : t.priority === "MEDIUM"
-                            ? "warning"
-                            : "success"
-                        }
-                      >
-                        {t.priority.toLowerCase()}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{t.assignee?.name || "—"}</TableCell>
-                    <TableCell>{t.dueDate ? formatDate(t.dueDate) : "—"}</TableCell>
-                  </TableRow>
-                ))}
-                {project.tasks.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5}>
-                      <div style={{ color: "#64748b", textAlign: "center", padding: 16 }}>No milestones yet</div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </tbody>
-            </Table>
-          </Card>
-
-          <SectionTitle>Files</SectionTitle>
-          <Card>
-            <CardContent>
-              {project.files.length === 0 ? (
-                <div style={{ color: "#64748b" }}>No files yet</div>
-              ) : (
-                project.files.map((f) => (
-                  <div key={f.id} style={{ padding: "12px 0", borderBottom: "1px solid #e2e8f0" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <Avatar size="28">{(f.fileType || "F").slice(0, 2).toUpperCase()}</Avatar>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>
-                            {f.fileName} {f.version > 1 ? `(v${f.version})` : ""}
-                          </div>
-                          <div style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                            {f.uploadedAt ? formatDate(f.uploadedAt) : ""}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Badge variant={f.approvalStatus === "APPROVED" ? "success" : f.approvalStatus === "CHANGES_REQUESTED" ? "warning" : "default"}>
-                          {f.approvalStatus?.toLowerCase().replace("_", " ")}
-                        </Badge>
-                        {f.approvalStatus !== "APPROVED" && (
-                          <Button size="sm" onClick={async () => { await fetch(`/api/files/${f.id}/approve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: "Approved by client" }) }); }}>
-                            Approve
-                          </Button>
-                        )}
-                        <Button $variant="outline" size="sm" onClick={() => { setActiveFile(f); setRevNote(""); setRevModalOpen(true); }}>
-                          Request Revisions
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {revModalOpen && activeFile && (
-            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1400 }}>
-              <div style={{ background: "#fff", borderRadius: 8, padding: 20, width: 520, maxWidth: "95%" }}>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Request Revisions</div>
-                <div style={{ color: "#64748b", marginBottom: 12 }}>Provide details on what changes are needed.</div>
-                <TextArea value={revNote} onChange={(e) => setRevNote(e.target.value)} placeholder="Please change the hero image and update the CTA copy..." />
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 12 }}>
-                  <Button $variant="outline" onClick={() => setRevModalOpen(false)}>Cancel</Button>
-                  <Button onClick={async () => { await fetch(`/api/files/${activeFile.id}/request-revision`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ note: revNote }) }); setRevModalOpen(false); setRevNote(""); }}>Submit</Button>
-                </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide">Progress</p>
+                <p className="text-base font-semibold text-foreground">{project.progress}%</p>
               </div>
             </div>
-          )}
+            <ProgressBar className="h-3 bg-border/60">
+              <ProgressFill value={project.progress} tone="info" />
+            </ProgressBar>
+            <div className="grid gap-4 text-sm text-muted sm:grid-cols-2 lg:grid-cols-3">
+              <div className="inline-flex items-center gap-2">
+                <FiCalendar aria-hidden />
+                <span>Start {project.startDate ? formatDate(project.startDate) : "—"}</span>
+              </div>
+              <div className="inline-flex items-center gap-2">
+                <FiCalendar aria-hidden />
+                <span>End {project.endDate ? formatDate(project.endDate) : "—"}</span>
+              </div>
+              <div className="inline-flex items-center gap-2">
+                <FiUsers aria-hidden />
+                <span>Team {project.teamSize || 0}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-heading text-xl font-semibold text-foreground">Milestones</h2>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Task</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Priority</TableHead>
+              <TableHead>Assignee</TableHead>
+              <TableHead>Due</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {project.tasks.length > 0 ? (
+              project.tasks.map((task) => (
+                <TableRow key={task.id}>
+                  <TableCell className="font-medium text-foreground">{task.title}</TableCell>
+                  <TableCell>
+                    <Badge variant={TASK_STATUS_VARIANTS[task.status] || "default"}>
+                      {task.status.toLowerCase().replace("_", " ")}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={PRIORITY_VARIANTS[task.priority] || "default"}>
+                      {task.priority.toLowerCase()}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{task.assignee?.name || "—"}</TableCell>
+                  <TableCell>{task.dueDate ? formatDate(task.dueDate) : "—"}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="py-8 text-center text-muted">
+                  No milestones yet
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-heading text-xl font-semibold text-foreground">Files</h2>
+        <Card className="rounded-3xl">
+          <CardContent className="space-y-4 px-6 py-6">
+            {project.files.length === 0 ? (
+              <p className="text-sm text-muted">No files yet</p>
+            ) : (
+              <ul className="space-y-4">
+                {project.files.map((file) => (
+                  <li
+                    key={file.id}
+                    className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-surface px-4 py-4 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Avatar size={40} className="bg-accent-soft text-info">
+                        {(file.fileType || "F").slice(0, 2).toUpperCase()}
+                      </Avatar>
+                      <div className="space-y-1 text-sm">
+                        <p className="font-semibold text-foreground">
+                          {file.fileName} {file.version > 1 ? `(v${file.version})` : ""}
+                        </p>
+                        <p className="text-muted">
+                          {file.uploadedAt ? formatDate(file.uploadedAt) : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <Badge variant={FILE_STATUS_VARIANTS[file.approvalStatus] || "default"}>
+                        {file.approvalStatus?.toLowerCase().replace("_", " ") || "pending"}
+                      </Badge>
+                      {file.approvalStatus !== "APPROVED" && (
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          className="rounded-lg"
+                          onClick={() => approveFile(file.id)}
+                        >
+                          Approve
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="rounded-lg"
+                        onClick={() => {
+                          setActiveFile(file);
+                          setRevNote("");
+                          setRevModalOpen(true);
+                        }}
+                      >
+                        Request Revisions
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {revModalOpen && activeFile ? (
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center bg-black/60 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="revision-modal-title"
+            className="w-full max-w-xl rounded-3xl border border-border/80 bg-surface px-6 py-6 shadow-xl"
+          >
+            <div className="space-y-2">
+              <h3 id="revision-modal-title" className="font-heading text-lg font-semibold text-foreground">
+                Request Revisions
+              </h3>
+              <p className="text-sm text-muted">
+                Provide details on what changes are needed for {activeFile.fileName}.
+              </p>
+            </div>
+            <Textarea
+              value={revNote}
+              onChange={(event) => setRevNote(event.target.value)}
+              placeholder="Please change the hero image and update the CTA copy..."
+              className="mt-4"
+            />
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                className="rounded-lg"
+                onClick={() => setRevModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="primary"
+                className="rounded-lg"
+                onClick={async () => {
+                  await submitRevisionRequest(activeFile.id);
+                  setRevModalOpen(false);
+                  setRevNote("");
+                }}
+              >
+                Submit
+              </Button>
+            </div>
+          </div>
         </div>
-      </Grid>
+      ) : null}
     </div>
   );
 }

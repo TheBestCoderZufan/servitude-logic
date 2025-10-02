@@ -11,6 +11,22 @@ module.exports = {
         foreground: "var(--sl-color-foreground)",
         surface: "var(--sl-color-surface)",
         muted: "var(--sl-color-text-muted)",
+        success: {
+          DEFAULT: "var(--sl-color-success)",
+          soft: "var(--sl-color-success-soft)",
+        },
+        warning: {
+          DEFAULT: "var(--sl-color-warning)",
+          soft: "var(--sl-color-warning-soft)",
+        },
+        error: {
+          DEFAULT: "var(--sl-color-error)",
+          soft: "var(--sl-color-error-soft)",
+        },
+        info: {
+          DEFAULT: "var(--sl-color-info)",
+          soft: "var(--sl-color-info-soft)",
+        },
         primary: {
           DEFAULT: "var(--sl-color-primary)",
           foreground: "var(--sl-color-on-primary)",
@@ -26,6 +42,33 @@ module.exports = {
         },
         border: "var(--sl-color-border)",
         ring: "var(--sl-color-ring)",
+        status: {
+          planning: {
+            DEFAULT: "var(--sl-status-planning)",
+            soft: "var(--sl-status-planning-soft)",
+          },
+          "in-progress": {
+            DEFAULT: "var(--sl-status-in-progress)",
+            soft: "var(--sl-status-in-progress-soft)",
+          },
+          completed: {
+            DEFAULT: "var(--sl-status-completed)",
+            soft: "var(--sl-status-completed-soft)",
+          },
+          "on-hold": {
+            DEFAULT: "var(--sl-status-on-hold)",
+            soft: "var(--sl-status-on-hold-soft)",
+          },
+          cancelled: {
+            DEFAULT: "var(--sl-status-cancelled)",
+            soft: "var(--sl-status-cancelled-soft)",
+          },
+        },
+        priority: {
+          low: "var(--sl-priority-low)",
+          medium: "var(--sl-priority-medium)",
+          high: "var(--sl-priority-high)",
+        },
       },
       borderRadius: {
         sm: "var(--sl-radius-sm)",
