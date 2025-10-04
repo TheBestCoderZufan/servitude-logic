@@ -1,63 +1,8 @@
 // src/components/ErrorBoundary.js
 "use client";
 import React from "react";
-import styled from "styled-components";
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/dashboard";
 import { FiRefreshCw, FiAlertTriangle, FiHome } from "react-icons/fi";
-
-const ErrorBoundaryContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  padding: ${({ theme }) => theme.spacing["2xl"]};
-  text-align: center;
-  background-color: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.lg};
-  margin: ${({ theme }) => theme.spacing.lg};
-`;
-
-const ErrorIcon = styled.div`
-  width: 80px;
-  height: 80px;
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-  background: linear-gradient(
-    135deg,
-    ${({ theme }) => theme.colors.error}20 0%,
-    ${({ theme }) => theme.colors.error}10 100%
-  );
-  border-radius: ${({ theme }) => theme.radii.full};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${({ theme }) => theme.colors.error};
-  font-size: 32px;
-`;
-
-const ErrorTitle = styled.h2`
-  font-size: ${({ theme }) => theme.fontSizes.xl};
-  font-weight: ${({ theme }) => theme.fontWeights.semibold};
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: ${({ theme }) => theme.spacing.md};
-`;
-
-const ErrorMessage = styled.p`
-  color: ${({ theme }) => theme.colors.text.secondary};
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-  max-width: 400px;
-  line-height: 1.5;
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    flex-direction: column;
-  }
-`;
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -96,26 +41,28 @@ class ErrorBoundary extends React.Component {
       }
 
       return (
-        <ErrorBoundaryContainer>
-          <ErrorIcon>
+        <div className="m-6 flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-border bg-surface p-12 text-center">
+          <div className="mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-error/10 text-3xl text-error">
             <FiAlertTriangle />
-          </ErrorIcon>
-          <ErrorTitle>{title || "Something went wrong"}</ErrorTitle>
-          <ErrorMessage>
+          </div>
+          <h2 className="mb-4 text-xl font-semibold text-foreground">
+            {title || "Something went wrong"}
+          </h2>
+          <p className="mb-8 max-w-md text-sm leading-relaxed text-muted">
             {message ||
               "This component encountered an error. Please try refreshing or contact support if the problem persists."}
-          </ErrorMessage>
-          <ActionButtons>
-            <Button onClick={this.handleRetry}>
-              <FiRefreshCw />
+          </p>
+          <div className="flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
+            <Button onClick={this.handleRetry} variant="primary" className="rounded-xl">
+              <FiRefreshCw className="mr-2" />
               Try Again
             </Button>
-            <Button variant="outline" onClick={this.handleGoHome}>
-              <FiHome />
+            <Button variant="secondary" onClick={this.handleGoHome} className="rounded-xl">
+              <FiHome className="mr-2" />
               Go Home
             </Button>
-          </ActionButtons>
-        </ErrorBoundaryContainer>
+          </div>
+        </div>
       );
     }
 
@@ -134,57 +81,57 @@ export const EmptyState = ({
   actionText = "Get Started",
   actionIcon: ActionIcon = FiRefreshCw,
 }) => (
-  <ErrorBoundaryContainer>
-    <ErrorIcon style={{ backgroundColor: "#f8fafc", color: "#64748b" }}>
+  <div className="m-6 flex min-h-[240px] flex-col items-center justify-center rounded-3xl border border-border bg-surface p-12 text-center">
+    <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-surface/60 text-xl text-muted">
       <Icon />
-    </ErrorIcon>
-    <ErrorTitle style={{ color: "#64748b" }}>{title}</ErrorTitle>
-    <ErrorMessage>{description}</ErrorMessage>
+    </div>
+    <h2 className="mb-3 text-lg font-semibold text-muted">{title}</h2>
+    <p className="mb-6 max-w-md text-sm leading-relaxed text-muted">{description}</p>
     {action && (
-      <Button onClick={action}>
-        <ActionIcon />
+      <Button onClick={action} variant="primary" className="rounded-xl">
+        <ActionIcon className="mr-2" />
         {actionText}
       </Button>
     )}
-  </ErrorBoundaryContainer>
+  </div>
 );
 
 export const NetworkError = ({ onRetry }) => (
-  <ErrorBoundaryContainer>
-    <ErrorIcon>
+  <div className="m-6 flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-border bg-surface p-12 text-center">
+    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-error/10 text-3xl text-error">
       <FiAlertTriangle />
-    </ErrorIcon>
-    <ErrorTitle>Connection Error</ErrorTitle>
-    <ErrorMessage>
+    </div>
+    <h2 className="mb-4 text-xl font-semibold text-foreground">Connection Error</h2>
+    <p className="mb-6 max-w-md text-sm leading-relaxed text-muted">
       Unable to connect to the server. Please check your internet connection and
       try again.
-    </ErrorMessage>
-    <ActionButtons>
-      <Button onClick={onRetry}>
-        <FiRefreshCw />
+    </p>
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <Button onClick={onRetry} variant="primary" className="rounded-xl">
+        <FiRefreshCw className="mr-2" />
         Retry
       </Button>
-    </ActionButtons>
-  </ErrorBoundaryContainer>
+    </div>
+  </div>
 );
 
 export const PermissionError = ({ onGoHome }) => (
-  <ErrorBoundaryContainer>
-    <ErrorIcon>
+  <div className="m-6 flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-border bg-surface p-12 text-center">
+    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-error/10 text-3xl text-error">
       <FiAlertTriangle />
-    </ErrorIcon>
-    <ErrorTitle>Access Denied</ErrorTitle>
-    <ErrorMessage>
+    </div>
+    <h2 className="mb-4 text-xl font-semibold text-foreground">Access Denied</h2>
+    <p className="mb-6 max-w-md text-sm leading-relaxed text-muted">
       You don&apos;t have permission to view this content. Please contact your
       administrator.
-    </ErrorMessage>
-    <ActionButtons>
-      <Button onClick={onGoHome}>
-        <FiHome />
+    </p>
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <Button onClick={onGoHome} variant="primary" className="rounded-xl">
+        <FiHome className="mr-2" />
         Go Home
       </Button>
-    </ActionButtons>
-  </ErrorBoundaryContainer>
+    </div>
+  </div>
 );
 
 // HOC for wrapping components with error boundary

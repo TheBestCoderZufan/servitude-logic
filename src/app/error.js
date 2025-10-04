@@ -2,101 +2,9 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import styled from "styled-components";
-import { Button } from "@/components/ui";
+import { Button } from "@/components/ui/dashboard";
 import { FiRefreshCw, FiHome, FiAlertTriangle } from "react-icons/fi";
 import { FaBug } from "react-icons/fa";
-
-const ErrorContainer = styled.div`
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: ${({ theme }) => theme.colors.backgroundSecondary};
-  padding: ${({ theme }) => theme.spacing.xl};
-`;
-
-const ErrorContent = styled.div`
-  text-align: center;
-  max-width: 600px;
-  width: 100%;
-`;
-
-const ErrorIcon = styled.div`
-  width: 120px;
-  height: 120px;
-  margin: 0 auto ${({ theme }) => theme.spacing.xl};
-  background: linear-gradient(
-    135deg,
-    ${({ theme }) => theme.colors.error}20 0%,
-    ${({ theme }) => theme.colors.error}10 100%
-  );
-  border-radius: ${({ theme }) => theme.radii.full};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: ${({ theme }) => theme.colors.error};
-  font-size: 48px;
-`;
-
-const ErrorTitle = styled.h1`
-  font-size: ${({ theme }) => theme.fontSizes["3xl"]};
-  font-weight: ${({ theme }) => theme.fontWeights.bold};
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-`;
-
-const ErrorDescription = styled.p`
-  font-size: ${({ theme }) => theme.fontSizes.lg};
-  color: ${({ theme }) => theme.colors.text.secondary};
-  margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
-  line-height: 1.6;
-`;
-
-const ErrorDetails = styled.details`
-  text-align: left;
-  background-color: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.lg};
-  padding: ${({ theme }) => theme.spacing.lg};
-  margin-bottom: ${({ theme }) => theme.spacing["2xl"]};
-`;
-
-const ErrorSummary = styled.summary`
-  font-weight: ${({ theme }) => theme.fontWeights.semibold};
-  color: ${({ theme }) => theme.colors.text.primary};
-  cursor: pointer;
-  padding: ${({ theme }) => theme.spacing.sm};
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.surfaceHover};
-    border-radius: ${({ theme }) => theme.radii.md};
-  }
-`;
-
-const ErrorMessage = styled.pre`
-  background-color: ${({ theme }) => theme.colors.backgroundSecondary};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.md};
-  padding: ${({ theme }) => theme.spacing.lg};
-  margin-top: ${({ theme }) => theme.spacing.lg};
-  font-family: ${({ theme }) => theme.fonts.mono};
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  color: ${({ theme }) => theme.colors.text.secondary};
-  overflow-x: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-`;
-
-const ActionButtons = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  justify-content: center;
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    flex-direction: column;
-  }
-`;
 
 export default function Error({ error, reset }) {
   const router = useRouter();
@@ -126,40 +34,40 @@ export default function Error({ error, reset }) {
   };
 
   return (
-    <ErrorContainer>
-      <ErrorContent>
-        <ErrorIcon>
+    <div className="flex min-h-screen items-center justify-center bg-background px-6 py-16">
+      <div className="w-full max-w-2xl rounded-3xl border border-border bg-surface px-8 py-12 text-center shadow-lg">
+        <div className="mx-auto mb-8 flex h-28 w-28 items-center justify-center rounded-full bg-error/10 text-4xl text-error">
           <FaBug />
-        </ErrorIcon>
+        </div>
 
-        <ErrorTitle>Something went wrong!</ErrorTitle>
-        <ErrorDescription>
+        <h1 className="mb-4 text-3xl font-bold text-foreground">Something went wrong!</h1>
+        <p className="mb-8 text-base leading-relaxed text-muted">
           We&apos;re sorry, but something unexpected happened. This error has
           been logged and we&apos;ll investigate the issue. You can try
           refreshing the page or go back home.
-        </ErrorDescription>
+        </p>
 
-        <ErrorDetails>
-          <ErrorSummary>
-            <FiAlertTriangle
-              style={{ marginRight: "8px", verticalAlign: "middle" }}
-            />
+        <details className="mx-auto mb-8 w-full max-w-xl rounded-2xl border border-border bg-background p-4 text-left">
+          <summary className="flex cursor-pointer items-center gap-2 rounded-xl px-2 py-1 text-sm font-semibold text-foreground transition hover:bg-surface">
+            <FiAlertTriangle />
             View Error Details
-          </ErrorSummary>
-          <ErrorMessage>{formatErrorMessage(error)}</ErrorMessage>
-        </ErrorDetails>
+          </summary>
+          <pre className="mt-4 max-h-64 overflow-auto whitespace-pre-wrap rounded-xl bg-surface/80 p-4 text-xs text-muted">
+            {formatErrorMessage(error)}
+          </pre>
+        </details>
 
-        <ActionButtons>
-          <Button onClick={handleRetry}>
-            <FiRefreshCw />
+        <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+          <Button onClick={handleRetry} variant="primary" className="rounded-xl">
+            <FiRefreshCw className="mr-2" />
             Try Again
           </Button>
-          <Button variant="outline" onClick={handleGoHome}>
-            <FiHome />
+          <Button variant="secondary" onClick={handleGoHome} className="rounded-xl">
+            <FiHome className="mr-2" />
             Go Home
           </Button>
-        </ActionButtons>
-      </ErrorContent>
-    </ErrorContainer>
+        </div>
+      </div>
+    </div>
   );
 }

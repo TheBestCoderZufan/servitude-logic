@@ -2,7 +2,7 @@
 "use client";
 import { useMemo } from "react";
 import { useProject } from "@/providers/ProjectProvider";
-import { SelectorWrap, Label, SelectEl } from "./ProjectSelector.style.jsx";
+import { cn } from "@/lib/utils/cn";
 
 export default function ProjectSelector() {
   const { selectedProjectId, setSelectedProjectId, projects, loading } =
@@ -15,33 +15,40 @@ export default function ProjectSelector() {
 
   if (loading && projects.length === 0) {
     return (
-      <SelectorWrap>
-        <Label>Project:</Label>
-        <SelectEl disabled>
+      <div className="flex items-center gap-3 rounded-full border border-border/60 bg-surface/80 px-3 py-2 text-sm text-muted">
+        <span className="font-medium text-muted">Project:</span>
+        <select
+          disabled
+          className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-muted"
+        >
           <option>Loading...</option>
-        </SelectEl>
-      </SelectorWrap>
+        </select>
+      </div>
     );
   }
 
-  // Optionally hide selector if only a single project
-  const shouldHide = projects.length <= 0;
-  if (shouldHide) return null;
+  if (projects.length <= 0) {
+    return null;
+  }
 
   return (
-    <SelectorWrap>
-      <Label>Project:</Label>
-      <SelectEl
+    <div className="flex items-center gap-3 rounded-full border border-border/60 bg-surface/80 px-3 py-2 text-sm text-muted">
+      <span className="font-medium text-muted">Project:</span>
+      <select
         aria-label="Select project"
         value={selectedProjectId || "all"}
-        onChange={(e) => setSelectedProjectId(e.target.value)}
+        onChange={(event) => setSelectedProjectId(event.target.value)}
+        className={cn(
+          "rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground shadow-sm transition",
+          "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        )}
       >
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name}
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.name}
           </option>
         ))}
-      </SelectEl>
-    </SelectorWrap>
+      </select>
+    </div>
   );
 }

@@ -23,6 +23,4 @@ export const navItems = [
   { href: "/dashboard/files", label: "Documents", exact: false },
   { href: "/dashboard/invoices", label: "View Invoices", exact: false },
   { href: "/dashboard/messages", label: "Messages & Support", exact: false },
-  { href: "/dashboard/domains", label: "Domains", exact: false },
-  { href: "/dashboard/schedule", label: "Schedule", exact: false },
 ];

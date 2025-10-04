@@ -38,9 +38,12 @@
 - Create a new branch for every feature, fix, or task.
   - Branch naming: `feature/<name>`, `fix/<name>`, `chore/<name>`.
   - **Never make direct changes to the `main` branch.**
+- When checking out a new branch from `main`, if there are uncommitted changes, analyze them, then commit all changes with an appropriate commit message and push them before creating the new branch.
 - Commit changes to the branch with clear, descriptive commit messages.
 - You must get **approval** before merging the new branch into the `main` branch.
-- If the merge is approved, merge the branch into `main` and push the changes to the remote repository.
+- When instructed to merge, take the branch currently checked out and merge it into the `main` branch.
+- When instructed to merge and delete, take the branch currently checked out, merge it into the `main` branch, and then delete the merged branch.
+- When instructed to delete a specific branch, delete that branch from both the local and remote repositories.
 
 ---
 
@@ -101,7 +104,7 @@ const clerkUser = await clerkC.users.getUser(id);
 
 ## Security
 
-- Never commit `.env` files or secrets.
+- Never commit `.env.*` files, secrets or sensitive data/information.
 - Sanitize all user input before processing or persisting.
 - Use HTTPS-only cookies for authentication.
 - Follow the principle of least privilege when accessing APIs and databases.

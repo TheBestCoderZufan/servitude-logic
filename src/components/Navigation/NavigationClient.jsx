@@ -1,6 +1,5 @@
 // src/components/Navigation/NavigationClient.jsx
 import Link from "next/link";
-import { Button } from "@/components/ui";
 import {
   Header,
   Logo,
@@ -9,6 +8,7 @@ import {
   NavLink,
   AuthButtons,
   DropdownContainer,
+  DropdownTriggerButton,
   DropdownMenu,
   DropdownItem,
   NavActionButton,
@@ -49,6 +49,7 @@ export default function NavigationClient({
   const buttonLabel = primaryAction?.label ?? "Get Started";
   const menuAriaLabel = `${buttonLabel} menu`;
   const showDropdown = safeMenuItems.length > 0;
+  const primaryActionHref = primaryAction?.href;
 
   return (
     <Header>
@@ -65,11 +66,16 @@ export default function NavigationClient({
       <AuthButtons>
         {showDropdown ? (
           <DropdownContainer>
-            <Button aria-haspopup="menu" aria-expanded="false">
+            <DropdownTriggerButton
+              as={primaryActionHref ? Link : undefined}
+              href={primaryActionHref || undefined}
+              aria-haspopup="menu"
+              aria-expanded="false"
+            >
               {userRole
                 ? `${capitalizeFirstLetter(userRole)} ${buttonLabel}`
                 : buttonLabel}
-            </Button>
+            </DropdownTriggerButton>
             <DropdownMenu role="menu" aria-label={menuAriaLabel}>
               {safeMenuItems.map((item) => {
                 if (item.type === "signOut") {

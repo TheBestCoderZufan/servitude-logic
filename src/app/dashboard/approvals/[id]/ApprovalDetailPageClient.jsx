@@ -1,61 +1,85 @@
 // src/app/dashboard/approvals/[id]/ApprovalDetailPageClient.jsx
 "use client";
-import styled from "styled-components";
+import React from "react";
 import Link from "next/link";
-import { Card, CardContent, Badge, Button } from "@/components/ui";
+import { Card, CardContent, Badge, Button } from "@/components/ui/dashboard";
 import { FiChevronLeft } from "react-icons/fi";
 import { formatDate } from "@/lib/utils";
 
-/** @module dashboard/approvals/ApprovalDetailPageClient */
+const STATUS_VARIANTS = {
+  COMPLETED: "success",
+  OVERDUE: "error",
+  "DUE-SOON": "warning",
+};
 
-const Header = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-`;
-const Title = styled.h1`
-  font-size: ${({ theme }) => theme.fontSizes["2xl"]};
-  font-weight: ${({ theme }) => theme.fontWeights.bold};
-  color: ${({ theme }) => theme.colors.text.primary};
-`;
-
+/**
+ * Approval detail page client component.
+ *
+ * @param {{ item: Object }} props - Server-provided approval record.
+ * @returns {JSX.Element}
+ */
 export default function ApprovalDetailPageClient({ item }) {
-  return (
-    <div>
-      <Header>
-        <div>
-          <Title>Approval: {item.title}</Title>
-          <div style={{ color: "#64748b" }}>
-            {item.project?.name} • {item.dueDate ? `Due ${formatDate(item.dueDate)}` : "No due date"}
-          </div>
-        </div>
-        <Link href="/dashboard/approvals">
-          <Button variant="outline" size="sm"><FiChevronLeft /> Back</Button>
-        </Link>
-      </Header>
+  const isCompleted = item.status === "COMPLETED";
+  const dueStatus = isCompleted
+    ? "COMPLETED"
+    : item.dueDateStatus === "overdue"
+    ? "OVERDUE"
+    : item.dueDateStatus === "due-soon"
+    ? "DUE-SOON"
+    : null;
+  const badgeVariant = dueStatus ? STATUS_VARIANTS[dueStatus] || "default" : "default";
 
-      <Card>
-        <CardContent>
-          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
-            <div>
-              <div style={{ color: "#64748b" }}>Status</div>
-              <Badge variant={item.status === "COMPLETED" ? "success" : item.dueDateStatus === "overdue" ? "error" : item.dueDateStatus === "due-soon" ? "warning" : "default"}>
-                {item.status === "COMPLETED" ? "Completed" : "Awaiting Your Signature"}
+  return (
+    <div className="space-y-8">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="space-y-2">
+          <h1 className="font-heading text-3xl font-semibold text-foreground">
+            Approval: {item.title}
+          </h1>
+          <p className="flex flex-wrap items-center gap-2 text-sm text-muted">
+            <span>{item.project?.name || "Unassigned project"}</span>
+            <span aria-hidden="true" className="text-muted">&bull;</span>
+            <span>{item.dueDate ? `Due ${formatDate(item.dueDate)}` : "No due date"}</span>
+          </p>
+        </div>
+        <Link href="/dashboard/approvals" className="inline-flex">
+          <Button variant="secondary" size="sm" className="rounded-lg">
+            <FiChevronLeft aria-hidden className="mr-2" /> Back
+          </Button>
+        </Link>
+      </header>
+
+      <Card className="rounded-3xl">
+        <CardContent className="space-y-6 px-6 py-6">
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase text-muted">Status</p>
+              <Badge variant={badgeVariant}>
+                {isCompleted ? "Completed" : "Awaiting Your Signature"}
               </Badge>
             </div>
-            <div style={{ marginLeft: "auto" }}>
-              {item.status !== "COMPLETED" && (
-                <Button onClick={() => window.location.assign("/dashboard/approvals")}>Sign</Button>
-              )}
-            </div>
+            {!isCompleted ? (
+              <div className="ml-auto">
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="rounded-lg"
+                  onClick={() => window.location.assign("/dashboard/approvals")}
+                >
+                  Sign
+                </Button>
+              </div>
+            ) : null}
           </div>
-          {item.description && (
-            <div style={{ marginTop: 16, color: "#334155" }}>{item.description}</div>
+
+          {item.description ? (
+            <p className="text-sm text-foreground/80">{item.description}</p>
+          ) : (
+            <p className="text-sm text-muted">No additional instructions were provided.</p>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
+/** @module dashboard/approvals/ApprovalDetailPageClient */

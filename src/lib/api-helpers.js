@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeRole } from "@/lib/roles";
+import { clerkClient } from "@clerk/nextjs/server";
 
 /**
  * Wraps a Next.js Route Handler with Clerk authentication.
@@ -138,10 +139,24 @@ export async function getUserRole(userId) {
       where: { clerkId: userId },
       select: { role: true },
     });
-    return user?.role || null;
-  } catch (e) {
-    return null;
+
+    if (user?.role) {
+      return normalizeRole(user.role);
+    }
+
+    const clerk = await clerkClient();
+    const clerkUser = await clerk.users.getUser(userId);
+    const metadataRole =
+      clerkUser?.publicMetadata?.role || clerkUser?.privateMetadata?.role;
+
+    if (metadataRole) {
+      return normalizeRole(metadataRole);
+    }
+  } catch (error) {
+    console.error("getUserRole fallback error", error);
   }
+
+  return "CLIENT";
 }
 
 /**

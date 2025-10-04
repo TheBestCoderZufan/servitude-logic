@@ -11,22 +11,8 @@ import {
   Badge,
 } from "@/components/ui";
 import { useToastNotifications } from "@/components/ui/Toast";
-import {
-  Layout,
-  Header,
-  Title,
-  Subtitle,
-  Grid,
-  Card,
-  CardTitle,
-  Section,
-  ModuleGrid,
-  ModuleCard,
-  LineItemTable,
-  TotalsRow,
-  Actions,
-} from "./ProposalWorkspacePageClient.style.jsx";
 import { formatCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 import { FiSave, FiSend, FiPlus, FiTrash2 } from "react-icons/fi";
 
 const STATUS_OPTIONS = [
@@ -193,218 +179,244 @@ export default function ProposalWorkspacePageClient({ intake, initialProposal, p
   }, [intake]);
 
   return (
-    <Layout>
-      <Header>
-        <Title>Proposal workspace</Title>
-        <Subtitle>
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h1 className="text-3xl font-bold text-foreground">Proposal workspace</h1>
+        <p className="text-sm text-muted">
           Prepare the scoped proposal for {intakeSummary.projectName}. Modules and custom line items feed
-          directly into the client approval flow.
-        </Subtitle>
-        <Badge variant="info">Intake status: {intake.status.replace(/_/g, " ")}</Badge>
-      </Header>
+          the client-facing document and billing readiness checks.
+        </p>
+      </header>
 
-      <Grid>
-        <Card aria-labelledby="proposal-summary">
-          <CardTitle id="proposal-summary">Proposal summary</CardTitle>
-          <Section>
-            <label htmlFor="proposal-summary-field" style={{ fontWeight: 600 }}>
-              Executive summary
-            </label>
-            <HelperText>
-              Summarise the proposed scope, objectives, and any key assumptions for the review package.
-            </HelperText>
+      {error ? <ErrorText>{error}</ErrorText> : null}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="space-y-6">
+          <section className="space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground">Scope summary</h2>
             <TextArea
-              id="proposal-summary-field"
-              rows={5}
               value={summary}
               onChange={(event) => setSummary(event.target.value)}
+              placeholder="Summarise the deliverables and goals for this proposal"
+              rows={4}
             />
-          </Section>
+            <HelperText>Clients will see this summary in the portal once the proposal is shared.</HelperText>
+          </section>
 
-          <Section>
-            <CardTitle as="h3">Pricing modules</CardTitle>
-            <HelperText>Select the relevant delivery modules. Adjust hours and rates in the pricing table.</HelperText>
-            <ModuleGrid>
-              {pricingModules.map((module) => (
-                <ModuleCard
-                  key={module.id}
-                  type="button"
-                  $selected={selectedModuleIds.has(module.id)}
-                  onClick={() => toggleModule(module)}
-                  aria-pressed={selectedModuleIds.has(module.id)}
-                >
-                  <strong>{module.title}</strong>
-                  <span style={{ color: "#475569", fontSize: "0.875rem" }}>{module.description}</span>
-                  <HelperText>
-                    {module.defaultHours}h @ {formatCurrency(module.blendedRate)} / hr
-                  </HelperText>
-                </ModuleCard>
-              ))}
-            </ModuleGrid>
-          </Section>
+          <section className="space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold text-foreground">Line items</h2>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="gap-2"
+                type="button"
+                onClick={() => setLineItems((prev) => [...prev, createEmptyCustomLineItem()])}
+              >
+                <FiPlus className="h-4 w-4" aria-hidden="true" />
+                Add custom line
+              </Button>
+            </div>
 
-          <Section>
-            <CardTitle as="h3">Pricing details</CardTitle>
-            {lineItems.length === 0 && (
-              <HelperText>Add modules or custom line items to build your estimate.</HelperText>
-            )}
-            {lineItems.length > 0 && (
-              <LineItemTable>
-                <thead>
-                  <tr>
-                    <th scope="col">Title</th>
-                    <th scope="col">Hours</th>
-                    <th scope="col">Rate</th>
-                    <th scope="col">Total</th>
-                    <th scope="col" aria-label="Actions" />
+            <div className="overflow-hidden rounded-xl border border-border">
+              <table className="w-full border-collapse text-sm">
+                <thead className="bg-background">
+                  <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                    <th className="px-4 py-3">Title</th>
+                    <th className="px-4 py-3">Description</th>
+                    <th className="px-4 py-3">Hours</th>
+                    <th className="px-4 py-3">Rate</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {lineItems.map((item) => (
-                    <tr key={item.key}>
-                      <td>
+                    <tr key={item.key} className="border-t border-border">
+                      <td className="px-4 py-3">
                         <Input
                           value={item.title}
                           onChange={(event) => updateLineItem(item.key, "title", event.target.value)}
-                          aria-label={`Title for ${item.key}`}
                         />
-                        <HelperText>
-                          <TextArea
-                            value={item.description}
-                            onChange={(event) => updateLineItem(item.key, "description", event.target.value)}
-                            rows={2}
-                            placeholder="Description"
-                          />
-                        </HelperText>
                       </td>
-                      <td>
+                      <td className="px-4 py-3">
+                        <TextArea
+                          value={item.description}
+                          onChange={(event) => updateLineItem(item.key, "description", event.target.value)}
+                          rows={2}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
                         <Input
                           type="number"
                           min="0"
-                          step="0.5"
                           value={item.hours}
                           onChange={(event) => updateLineItem(item.key, "hours", event.target.value)}
-                          aria-label={`Estimated hours for ${item.title}`}
                         />
                       </td>
-                      <td>
+                      <td className="px-4 py-3">
                         <Input
                           type="number"
                           min="0"
-                          step="1"
                           value={item.rate}
                           onChange={(event) => updateLineItem(item.key, "rate", event.target.value)}
-                          aria-label={`Hourly rate for ${item.title}`}
                         />
                       </td>
-                      <td>{formatCurrency(item.amount)}</td>
-                      <td>
-                        {!item.moduleId && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => removeLineItem(item.key)}
-                            aria-label={`Remove ${item.title}`}
-                          >
-                            <FiTrash2 />
-                          </Button>
-                        )}
+                      <td className="px-4 py-3 text-sm font-semibold text-foreground">
+                        {formatCurrency(item.amount)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeLineItem(item.key)}
+                          className="text-red-500 hover:bg-red-500/10"
+                        >
+                          <FiTrash2 className="h-4 w-4" aria-hidden="true" />
+                          Remove
+                        </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-              </LineItemTable>
-            )}
-            <Button type="button" variant="outline" onClick={() => setLineItems((prev) => [...prev, createEmptyCustomLineItem()])}>
-              <FiPlus /> Add custom line item
-            </Button>
+              </table>
+            </div>
 
-            <TotalsRow>
-              <span>Total estimated hours</span>
-              <strong>{totals.hours.toFixed(1)} h</strong>
-            </TotalsRow>
-            <TotalsRow>
-              <span>Investment estimate</span>
-              <strong>{formatCurrency(totals.amount)}</strong>
-            </TotalsRow>
-          </Section>
+            <div className="flex flex-col gap-3 rounded-xl border border-border bg-background/60 px-4 py-3 text-sm text-muted sm:flex-row sm:items-center sm:justify-between">
+              <span>Total hours</span>
+              <Badge variant="outline" className="rounded-full px-3 py-1 text-sm">
+                {totals.hours.toFixed(1)} hours
+              </Badge>
+              <span>Total estimate</span>
+              <Badge variant="primary" className="rounded-full px-3 py-1 text-sm">
+                {formatCurrency(totals.amount)}
+              </Badge>
+            </div>
+          </section>
+        </div>
 
-          <Section>
-            <label htmlFor="proposal-status" style={{ fontWeight: 600 }}>Workflow status</label>
-            <Select
-              id="proposal-status"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-              style={{ maxWidth: 280 }}
-            >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
-            <HelperText>
-              Choose the appropriate state before saving. Selecting "Ready for client" will package and deliver the proposal to the client portal.
-            </HelperText>
-            <label htmlFor="proposal-message" style={{ fontWeight: 600 }}>Reviewer or client message</label>
-            <TextArea
-              id="proposal-message"
-              rows={3}
-              placeholder="Add optional context for reviewers or the client."
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-            />
-          </Section>
+        <aside className="space-y-6">
+          <section className="space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground">Pricing modules</h2>
+            <p className="text-xs text-muted">
+              Select modules to auto-populate line items. You can tweak hours and rates afterwards.
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {pricingModules.map((module) => {
+                const isSelected = selectedModuleIds.has(module.id);
+                return (
+                  <button
+                    key={module.id}
+                    type="button"
+                    onClick={() => toggleModule(module)}
+                    className={cn(
+                      "rounded-xl border px-4 py-3 text-left transition",
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border bg-surface hover:border-primary",
+                    )}
+                  >
+                    <div className="flex items-center justify-between text-sm font-semibold text-foreground">
+                      <span>{module.title}</span>
+                      {isSelected ? (
+                        <Badge variant="primary" className="rounded-full px-2 py-0.5 text-xs">
+                          Selected
+                        </Badge>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-xs text-muted">{module.description}</p>
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted">
+                      <span>{module.defaultHours} hrs</span>
+                      <span>{formatCurrency(module.blendedRate)} / hr</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
 
-          {error && <ErrorText>{error}</ErrorText>}
+          <section className="space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground">Intake summary</h2>
+            <div className="space-y-3 text-sm text-muted">
+              <div>
+                <span className="font-semibold text-foreground">Project</span>
+                <p>{intakeSummary.projectName}</p>
+              </div>
+              <div>
+                <span className="font-semibold text-foreground">Goal</span>
+                <p>{intakeSummary.goalStatement || "—"}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="font-semibold text-foreground">Target launch</span>
+                  <p>{intakeSummary.targetLaunch || "—"}</p>
+                </div>
+                <div>
+                  <span className="font-semibold text-foreground">Budget range</span>
+                  <p>{intakeSummary.budgetRange || "—"}</p>
+                </div>
+              </div>
+              <div>
+                <span className="font-semibold text-foreground">Stakeholders</span>
+                <p>{intakeSummary.stakeholders || "—"}</p>
+              </div>
+            </div>
+          </section>
 
-          <Actions>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => persistProposal(status, { message })}
-              disabled={saving}
-            >
-              <FiSave /> {saving ? "Saving..." : "Save proposal"}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => persistProposal(CLIENT_STATUS_TARGET, { message })}
-              disabled={saving || lineItems.length === 0}
-            >
-              <FiSend /> {saving ? "Working..." : "Send to client"}
-            </Button>
-          </Actions>
-        </Card>
-
-        <Card aria-labelledby="intake-context">
-          <CardTitle id="intake-context">Client context</CardTitle>
-          <Section>
-            <strong>Client</strong>
-            <HelperText>
-              {intake.client.companyName} · {intake.client.contactName} ({intake.client.contactEmail})
-            </HelperText>
-          </Section>
-          <Section>
-            <strong>Project goals</strong>
-            <HelperText>{intakeSummary.goalStatement || "No goal statement provided."}</HelperText>
-          </Section>
-          <Section>
-            <strong>Target launch</strong>
-            <HelperText>{intakeSummary.targetLaunch || "Not specified"}</HelperText>
-          </Section>
-          <Section>
-            <strong>Budget range</strong>
-            <HelperText>{intakeSummary.budgetRange || "Not provided"}</HelperText>
-          </Section>
-          <Section>
-            <strong>Stakeholders</strong>
-            <HelperText>{intakeSummary.stakeholders || "Not provided"}</HelperText>
-          </Section>
-        </Card>
-      </Grid>
-    </Layout>
+          <section className="space-y-4 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-foreground">Workflow</h2>
+            <div className="space-y-3">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="proposal-status">
+                Proposal status
+              </label>
+              <Select
+                id="proposal-status"
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                {STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+              <HelperText>Send to client when ready for approval. Current viewer: {viewer.fullName}.</HelperText>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wide text-muted" htmlFor="proposal-message">
+                Internal note / client message
+              </label>
+              <TextArea
+                id="proposal-message"
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                rows={3}
+                placeholder="Optional message when sharing with the client"
+              />
+            </div>
+            <div className="flex flex-col gap-3 pt-4 sm:flex-row sm:justify-end">
+              <Button
+                variant="secondary"
+                className="gap-2"
+                onClick={() => persistProposal("DRAFT")}
+                disabled={saving}
+              >
+                <FiSave className="h-4 w-4" aria-hidden="true" />
+                {saving ? "Saving..." : "Save draft"}
+              </Button>
+              <Button
+                className="gap-2"
+                onClick={() => persistProposal(CLIENT_STATUS_TARGET, { message })}
+                disabled={saving}
+              >
+                <FiSend className="h-4 w-4" aria-hidden="true" />
+                {saving ? "Sending..." : "Share with client"}
+              </Button>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
   );
 }
-/** @module admin/intake/[id]/proposal/ProposalWorkspacePageClient */

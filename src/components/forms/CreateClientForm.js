@@ -1,7 +1,6 @@
 // src/components/forms/CreateClientForm.js
 "use client";
 import { useState } from "react";
-import styled from "styled-components";
 import { FormModal } from "@/components/ui/Modal";
 import {
   FormGroup,
@@ -13,25 +12,26 @@ import {
   ErrorText,
 } from "@/components/ui";
 import { useToastNotifications } from "@/components/ui/Toast";
+import { cn } from "@/lib/utils/cn";
 
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: ${({ theme }) => theme.spacing.lg};
-`;
+const FormSection = ({ children, className }) => (
+  <section className={cn("mb-10", className)}>{children}</section>
+);
 
-const FormSection = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.xl};
-`;
+const SectionTitle = ({ children, className }) => (
+  <h3
+    className={cn(
+      "mb-6 border-b border-border pb-3 text-lg font-semibold text-foreground",
+      className,
+    )}
+  >
+    {children}
+  </h3>
+);
 
-const SectionTitle = styled.h3`
-  font-size: ${({ theme }) => theme.fontSizes.lg};
-  font-weight: ${({ theme }) => theme.fontWeights.semibold};
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-  padding-bottom: ${({ theme }) => theme.spacing.sm};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.border};
-`;
+const FormGrid = ({ children, className }) => (
+  <div className={cn("grid gap-6 md:grid-cols-2", className)}>{children}</div>
+);
 
 export const CreateClientForm = ({
   initialData,

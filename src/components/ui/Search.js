@@ -1,62 +1,15 @@
 // src/components/ui/Search.js
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
-import styled from "styled-components";
 import { Input, Select, Button, Badge } from "@/components/ui";
+import { cn } from "@/lib/utils/cn";
 import {
   FiSearch,
   FiFilter,
   FiX,
   FiChevronDown,
   FiChevronUp,
-  FiCalendar,
-  FiCheck,
-  FiMinus,
 } from "react-icons/fi";
-
-// Search Input Component
-const SearchContainer = styled.div`
-  position: relative;
-  flex: 1;
-  max-width: ${({ maxWidth = "400px" }) => maxWidth};
-`;
-
-const SearchIcon = styled(FiSearch)`
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: ${({ theme }) => theme.colors.text.muted};
-  width: 16px;
-  height: 16px;
-  pointer-events: none;
-`;
-
-const ClearButton = styled.button`
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: ${({ theme }) => theme.colors.text.muted};
-  cursor: pointer;
-  padding: 2px;
-  border-radius: ${({ theme }) => theme.radii.sm};
-  display: ${({ show }) => (show ? "flex" : "none")};
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.text.primary};
-    background-color: ${({ theme }) => theme.colors.surfaceHover};
-  }
-`;
-
-const SearchInput = styled(Input)`
-  padding-left: 40px;
-  padding-right: ${({ hasClearButton }) => (hasClearButton ? "40px" : "12px")};
-`;
 
 export const SearchBox = ({
   value,
@@ -64,16 +17,14 @@ export const SearchBox = ({
   placeholder = "Search...",
   maxWidth,
   onClear,
+  className,
   ...props
 }) => {
   const [internalValue, setInternalValue] = useState(value || "");
   const [debouncedValue, setDebouncedValue] = useState(value || "");
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedValue(internalValue);
-    }, 300);
-
+    const timer = setTimeout(() => setDebouncedValue(internalValue), 300);
     return () => clearTimeout(timer);
   }, [internalValue]);
 
@@ -84,13 +35,15 @@ export const SearchBox = ({
   }, [debouncedValue, onChange, value]);
 
   useEffect(() => {
-    if (value !== internalValue) {
-      setInternalValue(value || "");
+    if (value === undefined) {
+      return;
     }
+    setInternalValue(value || "");
+    setDebouncedValue(value || "");
   }, [value]);
 
-  const handleInputChange = (e) => {
-    setInternalValue(e.target.value);
+  const handleInputChange = (event) => {
+    setInternalValue(event.target.value);
   };
 
   const handleClear = () => {
@@ -104,157 +57,35 @@ export const SearchBox = ({
   };
 
   return (
-    <SearchContainer maxWidth={maxWidth}>
-      <SearchIcon />
-      <SearchInput
+    <div
+      className={cn("relative flex-1", className)}
+      style={maxWidth ? { maxWidth } : undefined}
+    >
+      <FiSearch className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+      <Input
         value={internalValue}
         onChange={handleInputChange}
         placeholder={placeholder}
-        hasClearButton={!!internalValue}
+        className={cn(
+          "w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm text-foreground shadow-sm",
+          internalValue && "pr-10",
+        )}
         {...props}
       />
-      <ClearButton show={!!internalValue} onClick={handleClear}>
+      <button
+        type="button"
+        onClick={handleClear}
+        className={cn(
+          "absolute right-3 top-1/2 hidden -translate-y-1/2 items-center justify-center rounded-full p-1 text-muted transition hover:bg-surface-hover hover:text-foreground",
+          internalValue && "flex",
+        )}
+        aria-label="Clear search"
+      >
         <FiX size={14} />
-      </ClearButton>
-    </SearchContainer>
+      </button>
+    </div>
   );
 };
-
-// Advanced Filter Component
-const FilterContainer = styled.div`
-  position: relative;
-  display: inline-block;
-`;
-
-const FilterButton = styled(Button)`
-  position: relative;
-  gap: ${({ theme }) => theme.spacing.sm};
-`;
-
-const FilterBadge = styled(Badge)`
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: ${({ theme }) => theme.fontSizes.xs};
-`;
-
-const FilterDropdown = styled.div`
-  position: absolute;
-  top: 100%;
-  right: 0;
-  z-index: ${({ theme }) => theme.zIndices.dropdown};
-  background-color: ${({ theme }) => theme.colors.surface};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-  border-radius: ${({ theme }) => theme.radii.lg};
-  box-shadow: ${({ theme }) => theme.shadows.lg};
-  padding: ${({ theme }) => theme.spacing.lg};
-  min-width: 320px;
-  max-width: 400px;
-  margin-top: 8px;
-  display: ${({ isOpen }) => (isOpen ? "block" : "none")};
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.sm}) {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    right: auto;
-    transform: translate(-50%, -50%);
-    max-height: 80vh;
-    overflow-y: auto;
-    margin-top: 0;
-  }
-`;
-
-const FilterSection = styled.div`
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const FilterSectionTitle = styled.h4`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  font-weight: ${({ theme }) => theme.fontWeights.semibold};
-  color: ${({ theme }) => theme.colors.text.primary};
-  margin-bottom: ${({ theme }) => theme.spacing.md};
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const FilterSectionToggle = styled.button`
-  background: none;
-  border: none;
-  color: ${({ theme }) => theme.colors.text.muted};
-  cursor: pointer;
-  padding: 2px;
-
-  &:hover {
-    color: ${({ theme }) => theme.colors.text.primary};
-  }
-`;
-
-const FilterGroup = styled.div`
-  display: ${({ isCollapsed }) => (isCollapsed ? "none" : "block")};
-`;
-
-const FilterOption = styled.label`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.sm};
-  padding: ${({ theme }) => theme.spacing.sm};
-  border-radius: ${({ theme }) => theme.radii.md};
-  cursor: pointer;
-  transition: background-color ${({ theme }) => theme.transitions.fast};
-
-  &:hover {
-    background-color: ${({ theme }) => theme.colors.surfaceHover};
-  }
-
-  input {
-    margin: 0;
-  }
-`;
-
-const FilterOptionText = styled.span`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-  color: ${({ theme }) => theme.colors.text.secondary};
-  flex: 1;
-`;
-
-const FilterOptionCount = styled.span`
-  font-size: ${({ theme }) => theme.fontSizes.xs};
-  color: ${({ theme }) => theme.colors.text.muted};
-  background-color: ${({ theme }) => theme.colors.backgroundSecondary};
-  padding: 2px 6px;
-  border-radius: ${({ theme }) => theme.radii.full};
-`;
-
-const FilterActions = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  padding-top: ${({ theme }) => theme.spacing.lg};
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
-  margin-top: ${({ theme }) => theme.spacing.lg};
-`;
-
-const DateRangeContainer = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${({ theme }) => theme.spacing.md};
-  align-items: end;
-`;
-
-const DateInput = styled(Input)`
-  font-size: ${({ theme }) => theme.fontSizes.sm};
-`;
 
 export const AdvancedFilter = ({
   filters = [],
@@ -270,7 +101,7 @@ export const AdvancedFilter = ({
   const filterRef = useRef(null);
 
   const activeFilterCount = useMemo(() => {
-    return Object.entries(activeFilters).reduce((count, [key, value]) => {
+    return Object.entries(activeFilters).reduce((count, [, value]) => {
       if (Array.isArray(value)) {
         return count + value.length;
       }
@@ -340,21 +171,26 @@ export const AdvancedFilter = ({
     const currentValue = tempFilters[filter.key];
 
     return (
-      <FilterSection key={filter.key}>
-        <FilterSectionTitle>
+      <div key={filter.key} className="mb-6 last:mb-0">
+        <div className="mb-4 flex items-center justify-between text-sm font-semibold text-foreground">
           {filter.label}
           {filter.collapsible && (
-            <FilterSectionToggle onClick={() => toggleSection(filter.key)}>
+            <button
+              type="button"
+              onClick={() => toggleSection(filter.key)}
+              className="rounded-full p-1 text-muted transition hover:text-foreground"
+            >
               {isCollapsed ? <FiChevronDown /> : <FiChevronUp />}
-            </FilterSectionToggle>
+            </button>
           )}
-        </FilterSectionTitle>
+        </div>
 
-        <FilterGroup isCollapsed={isCollapsed}>
+        <div className={cn(isCollapsed && "hidden", "space-y-2")}
+        >
           {filter.type === "select" && (
             <Select
               value={currentValue || ""}
-              onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+              onChange={(event) => handleFilterChange(filter.key, event.target.value)}
             >
               <option value="">All {filter.label}</option>
               {filter.options.map((option) => (
@@ -367,264 +203,148 @@ export const AdvancedFilter = ({
 
           {filter.type === "checkbox" &&
             filter.options.map((option) => (
-              <FilterOption key={option.value}>
+              <label
+                key={option.value}
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted transition hover:bg-surface"
+              >
                 <input
                   type="checkbox"
+                  className="rounded border-border text-primary"
                   checked={(currentValue || []).includes(option.value)}
-                  onChange={() =>
-                    handleFilterChange(filter.key, option.value, true)
-                  }
+                  onChange={() => handleFilterChange(filter.key, option.value, true)}
                 />
-                <FilterOptionText>{option.label}</FilterOptionText>
+                <span className="flex-1 text-left text-sm text-muted">
+                  {option.label}
+                </span>
                 {option.count !== undefined && (
-                  <FilterOptionCount>{option.count}</FilterOptionCount>
+                  <span className="rounded-full bg-surface px-2 py-1 text-xs text-muted">
+                    {option.count}
+                  </span>
                 )}
-              </FilterOption>
+              </label>
             ))}
 
           {filter.type === "radio" &&
             filter.options.map((option) => (
-              <FilterOption key={option.value}>
+              <label
+                key={option.value}
+                className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-muted transition hover:bg-surface"
+              >
                 <input
                   type="radio"
+                  className="rounded border-border text-primary"
                   name={filter.key}
                   checked={currentValue === option.value}
                   onChange={() => handleFilterChange(filter.key, option.value)}
                 />
-                <FilterOptionText>{option.label}</FilterOptionText>
+                <span className="flex-1 text-left text-sm text-muted">
+                  {option.label}
+                </span>
                 {option.count !== undefined && (
-                  <FilterOptionCount>{option.count}</FilterOptionCount>
+                  <span className="rounded-full bg-surface px-2 py-1 text-xs text-muted">
+                    {option.count}
+                  </span>
                 )}
-              </FilterOption>
+              </label>
             ))}
 
           {filter.type === "dateRange" && (
-            <DateRangeContainer>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    color: "#64748b",
-                    marginBottom: "4px",
-                    display: "block",
-                  }}
-                >
+                <label className="mb-1 block text-xs font-medium text-muted">
                   From
                 </label>
-                <DateInput
+                <Input
                   type="date"
                   value={currentValue?.from || ""}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     handleFilterChange(filter.key, {
                       ...currentValue,
-                      from: e.target.value,
+                      from: event.target.value,
                     })
                   }
                 />
               </div>
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    color: "#64748b",
-                    marginBottom: "4px",
-                    display: "block",
-                  }}
-                >
+                <label className="mb-1 block text-xs font-medium text-muted">
                   To
                 </label>
-                <DateInput
+                <Input
                   type="date"
                   value={currentValue?.to || ""}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     handleFilterChange(filter.key, {
                       ...currentValue,
-                      to: e.target.value,
+                      to: event.target.value,
                     })
                   }
                 />
               </div>
-            </DateRangeContainer>
+            </div>
           )}
-        </FilterGroup>
-      </FilterSection>
+        </div>
+      </div>
     );
   };
 
   return (
-    <FilterContainer ref={filterRef}>
-      <FilterButton variant="outline" onClick={() => setIsOpen(!isOpen)}>
+    <div ref={filterRef} className="relative inline-block">
+      <Button
+        type="button"
+        variant="outline"
+        className="relative flex items-center gap-2 rounded-xl"
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
         <FiFilter />
         Filters
         {activeFilterCount > 0 && (
-          <FilterBadge variant="primary">{activeFilterCount}</FilterBadge>
+          <Badge
+            variant="primary"
+            className="absolute -right-2 -top-2 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs"
+          >
+            {activeFilterCount}
+          </Badge>
         )}
-      </FilterButton>
+      </Button>
 
-      <FilterDropdown isOpen={isOpen}>
+      <div
+        className={cn(
+          "absolute right-0 top-full z-[1000] mt-2 min-w-[320px] max-w-[400px] rounded-3xl border border-border bg-surface p-6 shadow-xl",
+          isOpen ? "block" : "hidden",
+        )}
+      >
         {filters.map(renderFilterSection)}
         {children}
 
-        <FilterActions>
+        <div className="mt-6 flex gap-3 border-t border-border pt-6">
           <Button size="sm" onClick={handleApply}>
             Apply Filters
           </Button>
           <Button variant="outline" size="sm" onClick={handleClear}>
             Clear All
           </Button>
-        </FilterActions>
-      </FilterDropdown>
-    </FilterContainer>
+        </div>
+      </div>
+    </div>
   );
 };
-
-// Search and Filter Bar Component
-const SearchFilterContainer = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.md};
-  align-items: center;
-  margin-bottom: ${({ theme }) => theme.spacing.lg};
-  padding: ${({ theme }) => theme.spacing.lg};
-  background-color: ${({ theme }) => theme.colors.surface};
-  border-radius: ${({ theme }) => theme.radii.lg};
-  border: 1px solid ${({ theme }) => theme.colors.border};
-
-  @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
-    flex-direction: column;
-    align-items: stretch;
-  }
-`;
-
-const QuickFiltersContainer = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.sm};
-  align-items: center;
-  flex-wrap: wrap;
-`;
-
-const QuickFilterButton = styled(Button)`
-  ${({ isActive, theme }) =>
-    isActive &&
-    `
-    background-color: ${theme.colors.primary};
-    color: ${theme.colors.text.white};
-    border-color: ${theme.colors.primary};
-  `}
-`;
-
-const ActiveFiltersContainer = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.spacing.sm};
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: ${({ theme }) => theme.spacing.md};
-`;
-
-const ActiveFilterBadge = styled(Badge)`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.spacing.xs};
-  padding: ${({ theme }) => theme.spacing.xs} ${({ theme }) => theme.spacing.sm};
-`;
-
-const FilterRemoveButton = styled.button`
-  background: none;
-  border: none;
-  color: inherit;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: ${({ theme }) => theme.radii.sm};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-  }
-`;
 
 export const SearchAndFilterBar = ({
   searchValue,
   onSearchChange,
   searchPlaceholder = "Search...",
-  filters = [],
-  activeFilters = {},
-  onFiltersChange,
   quickFilters = [],
   activeQuickFilter,
   onQuickFilterChange,
-  showActiveFilters = true,
+  filters = [],
+  activeFilters = {},
+  onFiltersChange,
+  activeFilterLabels = [],
   children,
 }) => {
-  const getActiveFilterLabels = () => {
-    const labels = [];
-
-    Object.entries(activeFilters).forEach(([key, value]) => {
-      const filter = filters.find((f) => f.key === key);
-      if (!filter || !value) return;
-
-      if (Array.isArray(value) && value.length > 0) {
-        value.forEach((val) => {
-          const option = filter.options?.find((opt) => opt.value === val);
-          if (option) {
-            labels.push({
-              key: `${key}-${val}`,
-              label: `${filter.label}: ${option.label}`,
-              onRemove: () => {
-                const newValues = value.filter((v) => v !== val);
-                onFiltersChange({
-                  ...activeFilters,
-                  [key]: newValues.length > 0 ? newValues : undefined,
-                });
-              },
-            });
-          }
-        });
-      } else if (value && !Array.isArray(value)) {
-        if (filter.type === "dateRange" && (value.from || value.to)) {
-          const dateLabel = [
-            value.from && `From: ${value.from}`,
-            value.to && `To: ${value.to}`,
-          ]
-            .filter(Boolean)
-            .join(", ");
-
-          labels.push({
-            key: `${key}-daterange`,
-            label: `${filter.label}: ${dateLabel}`,
-            onRemove: () => {
-              onFiltersChange({
-                ...activeFilters,
-                [key]: undefined,
-              });
-            },
-          });
-        } else {
-          const option = filter.options?.find((opt) => opt.value === value);
-          if (option) {
-            labels.push({
-              key: `${key}-${value}`,
-              label: `${filter.label}: ${option.label}`,
-              onRemove: () => {
-                onFiltersChange({
-                  ...activeFilters,
-                  [key]: undefined,
-                });
-              },
-            });
-          }
-        }
-      }
-    });
-
-    return labels;
-  };
-
-  const activeFilterLabels = showActiveFilters ? getActiveFilterLabels() : [];
-
   return (
     <div>
-      <SearchFilterContainer>
+      <div className="flex flex-wrap items-center gap-4 rounded-3xl border border-border bg-surface px-6 py-6">
         <SearchBox
           value={searchValue}
           onChange={onSearchChange}
@@ -633,19 +353,24 @@ export const SearchAndFilterBar = ({
         />
 
         {quickFilters.length > 0 && (
-          <QuickFiltersContainer>
+          <div className="flex flex-wrap items-center gap-2">
             {quickFilters.map((filter) => (
-              <QuickFilterButton
+              <Button
                 key={filter.key}
+                type="button"
                 variant="outline"
                 size="sm"
-                isActive={activeQuickFilter === filter.key}
+                className={cn(
+                  "rounded-full",
+                  activeQuickFilter === filter.key &&
+                    "border-transparent bg-primary text-primary-foreground",
+                )}
                 onClick={() => onQuickFilterChange(filter.key)}
               >
                 {filter.label}
-              </QuickFilterButton>
+              </Button>
             ))}
-          </QuickFiltersContainer>
+          </div>
         )}
 
         {filters.length > 0 && (
@@ -657,33 +382,36 @@ export const SearchAndFilterBar = ({
         )}
 
         {children}
-      </SearchFilterContainer>
+      </div>
 
       {activeFilterLabels.length > 0 && (
-        <ActiveFiltersContainer>
-          <span
-            style={{ fontSize: "14px", color: "#64748b", fontWeight: "500" }}
-          >
-            Active filters:
-          </span>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-muted">Active filters:</span>
           {activeFilterLabels.map((filter) => (
-            <ActiveFilterBadge key={filter.key} variant="primary">
+            <Badge
+              key={filter.key}
+              variant="primary"
+              className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs"
+            >
               {filter.label}
-              <FilterRemoveButton onClick={filter.onRemove}>
+              <button
+                type="button"
+                onClick={filter.onRemove}
+                className="rounded-full p-1 text-primary-foreground transition hover:bg-primary/10"
+              >
                 <FiX size={12} />
-              </FilterRemoveButton>
-            </ActiveFilterBadge>
+              </button>
+            </Badge>
           ))}
           <Button variant="ghost" size="sm" onClick={() => onFiltersChange({})}>
             Clear all
           </Button>
-        </ActiveFiltersContainer>
+        </div>
       )}
     </div>
   );
 };
 
-// Utility hook for managing search and filter state
 export const useSearchAndFilter = (data = [], searchFields = []) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState({});
@@ -692,7 +420,6 @@ export const useSearchAndFilter = (data = [], searchFields = []) => {
   const filteredData = useMemo(() => {
     let filtered = [...data];
 
-    // Apply search
     if (searchTerm) {
       filtered = filtered.filter((item) =>
         searchFields.some((field) => {
@@ -705,7 +432,6 @@ export const useSearchAndFilter = (data = [], searchFields = []) => {
       );
     }
 
-    // Apply filters
     Object.entries(filters).forEach(([key, value]) => {
       if (!value) return;
 
@@ -716,10 +442,9 @@ export const useSearchAndFilter = (data = [], searchFields = []) => {
         });
       } else if (value && !Array.isArray(value)) {
         if (typeof value === "object" && value.from && value.to) {
-          // Date range filter
           filtered = filtered.filter((item) => {
             const itemValue = new Date(
-              key.split(".").reduce((obj, k) => obj?.[k], item)
+              key.split(".").reduce((obj, k) => obj?.[k], item),
             );
             return (
               itemValue >= new Date(value.from) &&

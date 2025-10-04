@@ -93,6 +93,18 @@ const DropdownContainer = styled.div`
   }
 `;
 
+const DropdownTriggerButton = styled(UIButton)`
+  color: ${({ theme }) => theme.colors.text.white};
+  text-decoration: none;
+
+  &:hover:not(:disabled),
+  &:focus,
+  &:focus-visible {
+    color: ${({ theme }) => theme.colors.text.white};
+    text-decoration: none;
+  }
+`;
+
 const DropdownMenu = styled.div`
   position: absolute;
   top: calc(100% + 8px);
@@ -157,6 +169,7 @@ export {
   NavLink,
   AuthButtons,
   DropdownContainer,
+  DropdownTriggerButton,
   DropdownMenu,
   DropdownItem,
   NavActionButton,
