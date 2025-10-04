@@ -445,6 +445,9 @@ instance by caching it on <code>globalThis</code> outside of production.</p>
 <dt><a href="#matchAdminRoute">matchAdminRoute</a></dt>
 <dd><p>Precomputed matcher for administrative routes.</p>
 </dd>
+<dt><a href="#staffRoles">staffRoles</a> : <code>Array.&lt;(&quot;ADMIN&quot;|&quot;PROJECT_MANAGER&quot;|&quot;DEVELOPER&quot;)&gt;</code></dt>
+<dd><p>Roles that should be granted access to the administrative experience.</p>
+</dd>
 <dt><a href="#matchClerkAuthRoute">matchClerkAuthRoute</a></dt>
 <dd><p>Precomputed matcher for Clerk-hosted authentication routes.</p>
 </dd>
@@ -3833,6 +3836,12 @@ Precomputed matcher for authenticated API routes.
 
 ## matchAdminRoute
 Precomputed matcher for administrative routes.
+
+**Kind**: global constant  
+<a name="staffRoles"></a>
+
+## staffRoles : <code>Array.&lt;(&quot;ADMIN&quot;\|&quot;PROJECT\_MANAGER&quot;\|&quot;DEVELOPER&quot;)&gt;</code>
+Roles that should be granted access to the administrative experience.
 
 **Kind**: global constant  
 <a name="matchClerkAuthRoute"></a>

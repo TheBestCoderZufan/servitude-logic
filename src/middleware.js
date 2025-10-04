@@ -25,7 +25,11 @@ const publicPaths = [
  *
  * @type {string[]}
  */
-const clerkSpecificPublicPaths = ["/sign-in(.*)", "/sign-up(.*)", "/sign-out(.*)"];
+const clerkSpecificPublicPaths = [
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/sign-out(.*)",
+];
 
 /**
  * API routes that the middleware must evaluate for authentication and role routing.
@@ -64,6 +68,13 @@ const matchAuthedRoute = createRouteMatcher(apiRoutes);
  * Precomputed matcher for administrative routes.
  */
 const matchAdminRoute = createRouteMatcher(["/admin(.*)"]);
+
+/**
+ * Roles that should be granted access to the administrative experience.
+ *
+ * @type {Array<"ADMIN"|"PROJECT_MANAGER"|"DEVELOPER">}
+ */
+const staffRoles = ["ADMIN", "PROJECT_MANAGER", "DEVELOPER"];
 
 // Specifically match Clerk auth routes like /sign-in and /sign-up
 /**
@@ -163,16 +174,16 @@ export default clerkMiddleware(async (auth, req) => {
   if (!isPublic && !isAuthed)
     return NextResponse.redirect(new URL("/", req.url));
 
-  const isAdmin = isAuthed && sessionRole === "ADMIN";
+  const isStaff = isAuthed && staffRoles.includes(sessionRole);
 
   // If authenticated users hit Clerk auth pages, redirect by role
   if (isAuthed && isClerkAuthRoute(req)) {
-    const redirectUrl = new URL(isAdmin ? "/admin" : "/dashboard", req.url);
+    const redirectUrl = new URL(isStaff ? "/admin" : "/dashboard", req.url);
     return NextResponse.redirect(redirectUrl);
   }
 
   if (isAuthed && isAdminRoute(req)) {
-    if (!isAdmin) return NextResponse.redirect(new URL("/dashboard", req.url));
+    if (!isStaff) return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   if (pathname.startsWith("/api")) {
@@ -183,7 +194,7 @@ export default clerkMiddleware(async (auth, req) => {
   // Optionally, redirect signed-in users hitting the home page
   const hittingAuthedRoute = isAuthedRoute(req);
   if (isAuthed && hittingAuthedRoute) {
-    const dest = new URL(isAdmin ? "/admin" : "/dashboard", req.url);
+    const dest = new URL(isStaff ? "/admin" : "/dashboard", req.url);
     return NextResponse.redirect(dest);
   }
 
