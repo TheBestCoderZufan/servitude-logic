@@ -122,7 +122,7 @@ export default function AdminDashboardLayout({ children, activeTab = "dashboard"
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed z-40 flex h-full flex-col border-r border-border bg-surface transition-all duration-200 md:static",
+          "fixed inset-y-0 left-0 z-40 flex h-screen flex-col border-r border-border bg-surface transition-all duration-200 md:sticky md:top-0 md:left-0 md:h-screen md:self-start",
           isCollapsed ? "w-20" : "w-72",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
@@ -193,7 +193,7 @@ export default function AdminDashboardLayout({ children, activeTab = "dashboard"
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col md:ml-0">
+      <div className="flex flex-1 flex-col">
         <header className="sticky top-0 z-20 border-b border-border bg-surface/95 backdrop-blur">
           <div className="flex items-center justify-between px-4 py-3 md:px-6">
             <div className="flex items-center gap-2">
