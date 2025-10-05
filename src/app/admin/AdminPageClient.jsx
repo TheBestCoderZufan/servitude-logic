@@ -21,6 +21,7 @@ import {
   FiFolder,
   FiTrendingUp,
   FiUsers,
+  FiUserPlus,
 } from "react-icons/fi";
 
 /**
@@ -392,6 +393,16 @@ export default function AdminPageClient({
       accent: "bg-emerald-500",
     },
     {
+      title: "Client Signups",
+      value: stats?.totalClientSignups ?? "0",
+      delta: `${stats?.clientSignupsChange >= 0 ? "+" : ""}${
+        stats?.clientSignupsChange ?? 0
+      } vs last month`,
+      isPositive: (stats?.clientSignupsChange ?? 0) >= 0,
+      icon: FiUserPlus,
+      accent: "bg-indigo-500",
+    },
+    {
       title: "Pending Tasks",
       value: stats?.pendingTasks ?? "0",
       delta: `${stats?.tasksChange >= 0 ? "+" : ""}${stats?.tasksChange ?? 0} today`,
@@ -432,9 +443,9 @@ export default function AdminPageClient({
         </Button>
       </div>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         {statsLoading
-          ? Array.from({ length: 5 }).map((_, index) => (
+          ? Array.from({ length: statsCards.length }).map((_, index) => (
               <div
                 key={`stat-skeleton-${index}`}
                 className="h-32 rounded-2xl border border-border bg-surface shadow-sm"

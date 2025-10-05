@@ -56,6 +56,17 @@ export async function GET(request) {
       },
     });
 
+    // Get total clients linked to this project manager
+    const totalClientSignups = await prisma.client.count({
+      where: {
+        projects: {
+          some: {
+            projectManagerId: userId,
+          },
+        },
+      },
+    });
+
     // Get active clients count (clients with active projects)
     const activeClients = await prisma.client.count({
       where: {
@@ -198,6 +209,9 @@ export async function GET(request) {
       totalProjects,
       projectsChange: projectsThisMonth - projectsLastMonth,
       activeClients,
+      totalClientSignups,
+      clientSignupsThisMonth: clientsThisMonth,
+      clientSignupsChange: clientsThisMonth - clientsLastMonth,
       clientsChange: clientsThisMonth - clientsLastMonth,
       pendingTasks,
       tasksChange: tasksToday - tasksCompletedToday,

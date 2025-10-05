@@ -47,6 +47,7 @@ export default async function AdminPage() {
     projectsThisMonth,
     projectsLastMonth,
     recentProjects,
+    totalClientSignups,
     activeClients,
     clientsThisMonth,
     clientsLastMonth,
@@ -77,6 +78,15 @@ export default async function AdminPage() {
       },
       orderBy: { updatedAt: "desc" },
       take: 3,
+    }),
+    prisma.client.count({
+      where: {
+        projects: {
+          some: {
+            projectManagerId: userId,
+          },
+        },
+      },
     }),
     prisma.client.count({
       where: {
@@ -371,6 +381,9 @@ export default async function AdminPage() {
     totalProjects,
     projectsChange: projectsThisMonth - projectsLastMonth,
     activeClients,
+    totalClientSignups,
+    clientSignupsThisMonth: clientsThisMonth,
+    clientSignupsChange: clientsThisMonth - clientsLastMonth,
     clientsChange: clientsThisMonth - clientsLastMonth,
     pendingTasks,
     tasksChange: tasksToday - tasksCompletedToday,
